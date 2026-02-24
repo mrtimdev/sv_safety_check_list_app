@@ -1,0 +1,46 @@
+name: safety_check_list
+description: "A new Flutter project."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+  image_picker: ^1.2.1
+  google_mlkit_text_recognition: ^0.15.1
+  intl: ^0.20.2
+  provider: ^6.1.5+1
+  path_provider: ^2.1.5
+  device_info_plus: ^12.3.0
+  package_info_plus: ^9.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_launcher_icons: ^0.13.1
+  flutter_lints: ^5.0.0
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: assets/sv_app_icon.png
+
+flutter:
+  uses-material-design: true
+  generate: true
+
+  fonts:
+    - family: KantumruyPro
+      fonts:
+        - asset: assets/fonts/KantumruyPro-Regular.ttf
+        # - asset: assets/fonts/KantumruyPro-Bold.ttf
+          weight: 700
+
+  assets:
+    - assets/
