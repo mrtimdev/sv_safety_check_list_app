@@ -2,9 +2,13 @@ import 'package:flutter/material.dart';
 
 class LoadingIndicator extends StatelessWidget {
   final String message;
+  final Color? color; // Make color optional with ?
 
-  const LoadingIndicator({Key? key, this.message = 'Loading...'})
-    : super(key: key);
+  const LoadingIndicator({
+    Key? key,
+    this.message = 'Loading...',
+    this.color, // Make color optional
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -12,11 +16,17 @@ class LoadingIndicator extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const CircularProgressIndicator(),
+          CircularProgressIndicator(
+            valueColor:
+                color != null ? AlwaysStoppedAnimation<Color>(color!) : null,
+          ),
           const SizedBox(height: 16),
           Text(
             message,
-            style: TextStyle(color: Colors.grey[600], fontSize: 14),
+            style: TextStyle(
+              color: Colors.grey[600],
+              fontSize: 14,
+            ),
           ),
         ],
       ),

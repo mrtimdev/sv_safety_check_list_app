@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../models/service_checker.dart';
+import 'package:safety_check_list/models/device_info.dart';
+import 'package:safety_check_list/models/service_checker.dart';
+// import 'package:safety_check_list/models/service_checker_request.dart';
+
 import '../services/api_service.dart';
 import '../widgets/filter_chips.dart';
 import '../widgets/loading_indicator.dart';
@@ -36,6 +39,9 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoadingMore = false;
   String? _errorMessage;
 
+  DeviceInfo? _deviceInfo;
+  bool _loadingDeviceInfo = true;
+
   // Scroll controller for pagination
   final ScrollController _scrollController = ScrollController();
 
@@ -50,8 +56,26 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _loadChecklists();
+    _loadDeviceInfo().then((_) {
+      _loadChecklists();
+    });
     _scrollController.addListener(_onScroll);
+  }
+
+  Future<void> _loadDeviceInfo() async {
+    try {
+      final deviceInfo = await DeviceInfo.getDeviceInfo();
+      setState(() {
+        _deviceInfo = deviceInfo;
+        _loadingDeviceInfo = false;
+      });
+      print('📱 Device info loaded: ${deviceInfo.toJson()}');
+    } catch (e) {
+      print('❌ Error loading device info: $e');
+      setState(() {
+        _loadingDeviceInfo = false;
+      });
+    }
   }
 
   Future<void> _loadChecklists({bool refresh = false}) async {
@@ -68,8 +92,7 @@ class _HomeScreenState extends State<HomeScreen> {
         page: _currentPage,
         limit: 20,
         dateFilter: _selectedFilter != 'all' ? _selectedFilter : null,
-        driverId:
-            _selectedDriverId != null ? int.parse(_selectedDriverId!) : null,
+        deviceInfo: _deviceInfo!,
       );
 
       setState(() {
@@ -460,7 +483,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SizedBox(height: 4),
                   const Text(
-                    'Safety Inspections',
+                    'Safety checklists',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 22,
@@ -554,8 +577,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildModernChecklistCard(ServiceChecker checklist) {
     final passRate = checklist.passRate;
-    final statusColor =
-        passRate >= 80 ? primaryBlue : primaryBlue.withOpacity(0.3);
+    final statusColor = passRate >= 80
+        ? primaryBlue.withOpacity(0.7)
+        : primaryBlue.withOpacity(0.3);
     final isExcellent = passRate >= 90;
 
     return Dismissible(
@@ -609,7 +633,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         );
       },
-      onDismissed: (direction) => _deleteChecklist(checklist.id!),
+      // onDismissed: (direction) => _deleteChecklist(checklist.id!),
       child: GestureDetector(
         onTap: () => _navigateToDetail(checklist),
         child: Container(
@@ -679,22 +703,22 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                             ),
                           ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: statusColor.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              '${passRate.toStringAsFixed(0)}%',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: statusColor,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
+                          // Container(
+                          //   padding: const EdgeInsets.symmetric(
+                          //       horizontal: 10, vertical: 4),
+                          //   decoration: BoxDecoration(
+                          //     color: statusColor.withOpacity(0.1),
+                          //     borderRadius: BorderRadius.circular(20),
+                          //   ),
+                          //   child: Text(
+                          //     '${passRate.toStringAsFixed(0)}%',
+                          //     style: TextStyle(
+                          //       fontSize: 12,
+                          //       color: statusColor,
+                          //       fontWeight: FontWeight.w700,
+                          //     ),
+                          //   ),
+                          // ),
                         ],
                       ),
                       const SizedBox(height: 8),
@@ -711,18 +735,18 @@ class _HomeScreenState extends State<HomeScreen> {
                               fontWeight: FontWeight.w500,
                             ),
                           ),
-                          const SizedBox(width: 16),
-                          Icon(Icons.access_time_rounded,
-                              size: 14, color: Colors.grey.shade500),
-                          const SizedBox(width: 6),
-                          Text(
-                            checklist.formattedTime,
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.grey.shade600,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
+                          // const SizedBox(width: 16),
+                          // Icon(Icons.access_time_rounded,
+                          //     size: 14, color: Colors.grey.shade500),
+                          // const SizedBox(width: 6),
+                          // Text(
+                          //   checklist.formattedTime,
+                          //   style: TextStyle(
+                          //     fontSize: 13,
+                          //     color: Colors.grey.shade600,
+                          //     fontWeight: FontWeight.w500,
+                          //   ),
+                          // ),
                         ],
                       ),
                       const SizedBox(height: 12),
@@ -731,21 +755,21 @@ class _HomeScreenState extends State<HomeScreen> {
                         children: [
                           _buildSummaryChip(
                             Icons.check_rounded,
-                            '${checklist.checkedCount} Pass',
-                            Colors.green,
+                            '${checklist.checkedCount} មាន',
+                            Colors.grey.shade700,
                           ),
                           const SizedBox(width: 8),
                           _buildSummaryChip(
                             Icons.close_rounded,
-                            '${checklist.notCheckedCount} Fail',
-                            Colors.red,
+                            '${checklist.notCheckedCount} មិនមាន',
+                            Colors.grey.shade700,
                           ),
                           if (checklist.itemNoteCount > 0) ...[
                             const SizedBox(width: 8),
                             _buildSummaryChip(
                               Icons.note_alt_rounded,
-                              '${checklist.itemNoteCount} Note',
-                              Colors.orange,
+                              '${checklist.itemNoteCount} ចំនួនសំណួរ',
+                              Colors.grey.shade700,
                             ),
                           ],
                         ],
@@ -838,7 +862,7 @@ class _HomeScreenState extends State<HomeScreen> {
             Text(
               _selectedFilter != 'all'
                   ? 'No checklists found for selected filter'
-                  : 'Start by creating your first safety inspection',
+                  : 'Start by creating your first safety checklist',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
@@ -896,16 +920,16 @@ class _HomeScreenState extends State<HomeScreen> {
                 color: Colors.grey.shade700,
               ),
             ),
-            const SizedBox(height: 8),
-            Text(
-              _errorMessage!,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.grey.shade600,
-                fontSize: 14,
-                height: 1.5,
-              ),
-            ),
+            // const SizedBox(height: 8),
+            // Text(
+            //   _errorMessage!,
+            //   textAlign: TextAlign.center,
+            //   style: TextStyle(
+            //     color: Colors.grey.shade600,
+            //     fontSize: 14,
+            //     height: 1.5,
+            //   ),
+            // ),
             const SizedBox(height: 24),
             ElevatedButton.icon(
               onPressed: _refreshChecklists,

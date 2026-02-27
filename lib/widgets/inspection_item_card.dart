@@ -107,17 +107,17 @@ class _InspectionItemCardState extends State<InspectionItemCard> {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color:
-                            widget.hasError ? Colors.red : Colors.grey.shade300,
-                        width: widget.hasError ? 1.5 : 1,
-                      ),
+                      // border: Border.all(
+                      //   color:
+                      //       widget.hasError ? Colors.red : Colors.grey.shade300,
+                      //   width: widget.hasError ? 1.5 : 1,
+                      // ),
                     ),
                     child: TextField(
                       controller: _noteController,
                       focusNode: _noteFocusNode,
                       decoration: InputDecoration(
-                        hintText: 'Enter reason for failure...',
+                        hintText: 'បញ្ចូលមូលហេតុ...',
                         hintStyle: TextStyle(
                           fontSize: 13,
                           color: Colors.grey.shade400,
@@ -158,7 +158,7 @@ class _InspectionItemCardState extends State<InspectionItemCard> {
                             size: 12, color: Colors.red.shade700),
                         const SizedBox(width: 4),
                         Text(
-                          'Note is required for failed items',
+                          'សូមផ្តល់ហេតុផលខ្លះផងសម្រាប់ការត្រួតពិនិត្យនេះ',
                           style: TextStyle(
                             fontSize: 11,
                             color: Colors.red.shade700,
@@ -217,12 +217,12 @@ class _InspectionItemCardState extends State<InspectionItemCard> {
                   : Colors.red.withOpacity(0.1))
               : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isSelected
-                ? (value ? Colors.green : Colors.red)
-                : Colors.grey.shade300,
-            width: isSelected ? 1.5 : 1,
-          ),
+          // border: Border.all(
+          //   color: isSelected
+          //       ? (value ? Colors.green : Colors.red)
+          //       : Colors.grey.shade300,
+          //   width: isSelected ? 1.5 : 1,
+          // ),
         ),
         child: Text(
           label,

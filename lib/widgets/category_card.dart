@@ -33,6 +33,11 @@ class _CategoryCardState extends State<CategoryCard> {
         .where((i) => !i.passed && i.note != null && i.note!.isNotEmpty)
         .length;
 
+    // Debug print to verify data
+    print('📁 Category: ${widget.category.khmerName} - ${widget.category.id}');
+    print('   Total items: $totalItems');
+    print('   Failed items: $failedItems');
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -49,7 +54,7 @@ class _CategoryCardState extends State<CategoryCard> {
       ),
       child: Column(
         children: [
-          // Header
+          // Header - Always visible
           InkWell(
             onTap: () {
               setState(() {
@@ -58,101 +63,176 @@ class _CategoryCardState extends State<CategoryCard> {
             },
             borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
             child: Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
                 color: Colors.grey.shade50,
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(20)),
-                border: Border(
-                  bottom: BorderSide(
-                    color: Colors.grey.shade200,
-                    width: _isExpanded ? 1 : 0,
-                  ),
-                ),
+                borderRadius: BorderRadius.circular(20),
               ),
               child: Row(
                 children: [
+                  // Category Icon - Always visible
                   Container(
-                    padding: const EdgeInsets.all(8),
+                    padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
                       color: const Color(0xFF1E3A8A).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(Icons.category,
-                        color: Color(0xFF1E3A8A), size: 18),
+                    child: const Icon(
+                      Icons.category,
+                      color: Color(0xFF1E3A8A),
+                      size: 20,
+                    ),
                   ),
+
                   const SizedBox(width: 12),
+
+                  // Category Name and Stats - Always visible
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
+                        // Category Name
                         Text(
-                          widget.category.khmerName,
+                          widget.category.khmerName.isNotEmpty
+                              ? widget.category.khmerName
+                              : 'Unnamed Category',
                           style: const TextStyle(
                             fontWeight: FontWeight.w600,
-                            fontSize: 15,
+                            fontSize: 16,
                             color: Color(0xFF1E3A8A),
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 2),
-                        Text(
-                          '$totalItems items • $failedItems failed',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey.shade600,
-                          ),
+
+                        const SizedBox(height: 4),
+
+                        // Stats Row
+                        Row(
+                          children: [
+                            // Total items
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.blue.shade50,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                '$totalItems items',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.blue.shade700,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+
+                            if (failedItems > 0) ...[
+                              const SizedBox(width: 6),
+                              // Failed items
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: failedItems == itemsWithNotes
+                                      ? Colors.green.shade50
+                                      : Colors.orange.shade50,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      failedItems == itemsWithNotes
+                                          ? Icons.check_circle
+                                          : Icons.warning,
+                                      size: 10,
+                                      color: failedItems == itemsWithNotes
+                                          ? Colors.green.shade700
+                                          : Colors.orange.shade700,
+                                    ),
+                                    const SizedBox(width: 2),
+                                    Text(
+                                      '$failedItems failed',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: failedItems == itemsWithNotes
+                                            ? Colors.green.shade700
+                                            : Colors.orange.shade700,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                       ],
                     ),
                   ),
-                  if (failedItems > 0)
+
+                  // Notes indicator (if any)
+                  if (itemsWithNotes > 0) ...[
                     Container(
                       margin: const EdgeInsets.only(right: 8),
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: itemsWithNotes == failedItems
-                            ? Colors.green.withOpacity(0.1)
-                            : Colors.orange.withOpacity(0.1),
+                        color: Colors.orange.shade50,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            itemsWithNotes == failedItems
-                                ? Icons.check_circle
-                                : Icons.warning,
+                            Icons.note,
                             size: 12,
-                            color: itemsWithNotes == failedItems
-                                ? Colors.green
-                                : Colors.orange,
+                            color: Colors.orange.shade700,
                           ),
-                          const SizedBox(width: 4),
+                          const SizedBox(width: 2),
                           Text(
-                            '$itemsWithNotes/$failedItems',
+                            '$itemsWithNotes',
                             style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: itemsWithNotes == failedItems
-                                  ? Colors.green
-                                  : Colors.orange,
+                              fontSize: 11,
+                              color: Colors.orange.shade700,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ],
                       ),
                     ),
-                  Icon(
-                    _isExpanded ? Icons.expand_less : Icons.expand_more,
-                    color: const Color(0xFF1E3A8A),
+                  ],
+
+                  // Expand/Collapse Icon
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      _isExpanded
+                          ? Icons.keyboard_arrow_up
+                          : Icons.keyboard_arrow_down,
+                      color: const Color(0xFF1E3A8A),
+                      size: 20,
+                    ),
                   ),
                 ],
               ),
             ),
           ),
 
-          // Items
-          if (_isExpanded)
+          // Items - Only visible when expanded
+          if (_isExpanded && widget.inspections.isNotEmpty) ...[
+            Divider(
+              height: 1,
+              thickness: 1,
+              color: Colors.grey.shade200,
+            ),
             ...widget.inspections.asMap().entries.map((entry) {
               final index = entry.key;
               final inspection = entry.value;
@@ -171,6 +251,36 @@ class _CategoryCardState extends State<CategoryCard> {
                 showDivider: !isLast,
               );
             }).toList(),
+          ] else if (_isExpanded && widget.inspections.isEmpty) ...[
+            Divider(
+              height: 1,
+              thickness: 1,
+              color: Colors.grey.shade200,
+            ),
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Center(
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.inbox,
+                      size: 32,
+                      color: Colors.grey.shade400,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'No items in this category',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey.shade500,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );

@@ -3,7 +3,6 @@ import 'package:intl/intl.dart';
 class ServiceChecker {
   final int? id;
   final String licensePlate;
-  final String? licensePlateEstimated; // New field for estimated license plate
   final DateTime date;
   final int totalItems;
   final int itemNoteCount;
@@ -16,7 +15,6 @@ class ServiceChecker {
   ServiceChecker({
     this.id,
     required this.licensePlate,
-    this.licensePlateEstimated,
     required this.date,
     required this.totalItems,
     required this.itemNoteCount,
@@ -29,13 +27,27 @@ class ServiceChecker {
 
   // Computed properties
   String get formattedDate => DateFormat('dd MMM yyyy').format(date);
-  String get formattedTime => DateFormat('HH:mm').format(createdAt ?? date);
-  String get createdAtFormattedTime =>
-      DateFormat('dd MMM yyyy, HH:mm').format(createdAt ?? date);
+  String get formattedTime => DateFormat('HH:mm').format(date);
 
   double get passRate {
     if (totalItems == 0) return 0;
     return (checkedCount / totalItems) * 100;
+  }
+
+  // Flatten items for UI display
+  List<ChecklistItem> get flattenedItems {
+    return items.expand((item) => item.inspectionItems).toList();
+  }
+
+  // Group items by category for UI display
+  Map<CategoryDTO, List<ChecklistItem>> get itemsByCategory {
+    final Map<CategoryDTO, List<ChecklistItem>> result = {};
+
+    for (var item in items) {
+      result[item.category] = item.inspectionItems;
+    }
+
+    return result;
   }
 
   factory ServiceChecker.fromJson(Map<String, dynamic> json) {
@@ -63,8 +75,6 @@ class ServiceChecker {
     return ServiceChecker(
       id: json['id'],
       licensePlate: json['licensePlate'] ?? 'Unknown',
-      licensePlateEstimated:
-          json['licensePlateEstimated'], // Parse estimated license plate
       date:
           json['date'] != null ? DateTime.parse(json['date']) : DateTime.now(),
       totalItems: json['totalItems'] ?? parsedItems.length,
@@ -82,8 +92,6 @@ class ServiceChecker {
     return {
       'id': id,
       'licensePlate': licensePlate,
-      'licensePlateEstimated':
-          licensePlateEstimated, // Include estimated license plate in JSON
       'date': date.toIso8601String(),
       'totalItems': totalItems,
       'itemNoteCount': itemNoteCount,
@@ -134,6 +142,7 @@ class ServiceCheckerItem {
         id: note.inspectionItem.id,
         name: note.inspectionItem.name,
         khmerName: note.inspectionItem.khmerName,
+        englishName: note.inspectionItem.englishName,
         passed: note.passed,
         note: note.note,
         categoryId: category.id,
@@ -168,6 +177,15 @@ class CategoryDTO {
       'khmerName': khmerName,
     };
   }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is CategoryDTO && other.id == id;
+  }
+
+  @override
+  int get hashCode => id.hashCode;
 }
 
 class ServiceCheckerItemNote {
@@ -206,11 +224,13 @@ class ItemDTO {
   final int id;
   final String name;
   final String? khmerName;
+  final String? englishName;
 
   ItemDTO({
     required this.id,
     required this.name,
     this.khmerName,
+    this.englishName,
   });
 
   factory ItemDTO.fromJson(Map<String, dynamic> json) {
@@ -218,6 +238,7 @@ class ItemDTO {
       id: json['id'] ?? 0,
       name: json['name'] ?? '',
       khmerName: json['khmerName'],
+      englishName: json['englishName'],
     );
   }
 
@@ -226,15 +247,17 @@ class ItemDTO {
       'id': id,
       'name': name,
       'khmerName': khmerName,
+      'englishName': englishName,
     };
   }
 }
 
-// Keep ChecklistItem for backward compatibility and UI
+// Extended ChecklistItem for UI with additional fields
 class ChecklistItem {
   final int id;
   final String name;
   final String? khmerName;
+  final String? englishName;
   final bool passed;
   final String? note;
   final int? categoryId;
@@ -243,16 +266,21 @@ class ChecklistItem {
     required this.id,
     required this.name,
     this.khmerName,
+    this.englishName,
     required this.passed,
     this.note,
     this.categoryId,
   });
+
+  // Display name priority: khmerName > name
+  String get displayName => khmerName ?? name;
 
   factory ChecklistItem.fromJson(Map<String, dynamic> json) {
     return ChecklistItem(
       id: json['id'] ?? 0,
       name: json['name'] ?? json['itemName'] ?? '',
       khmerName: json['khmerName'],
+      englishName: json['englishName'],
       passed: json['passed'] ?? true,
       note: json['note'],
       categoryId: json['categoryId'],
@@ -264,6 +292,7 @@ class ChecklistItem {
       'id': id,
       'name': name,
       'khmerName': khmerName,
+      'englishName': englishName,
       'passed': passed,
       'note': note,
       'categoryId': categoryId,

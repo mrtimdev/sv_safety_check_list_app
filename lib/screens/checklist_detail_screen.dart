@@ -1,8 +1,10 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:safety_check_list/models/service_checker.dart';
 import 'package:safety_check_list/screens/checklist_form_screen.dart';
-import '../models/service_checker.dart';
-import '../models/inspection.dart';
+import 'package:safety_check_list/services/api_service.dart';
 
 class ChecklistDetailScreen extends StatelessWidget {
   final ServiceChecker checklist;
@@ -20,11 +22,12 @@ class ChecklistDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    print("checklist details: ${checklist.toJson()}");
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
         title: const Text(
-          'Inspection Details',
+          'Safety Checklist Details',
           style: TextStyle(
             fontWeight: FontWeight.w700,
             fontSize: 18,
@@ -45,6 +48,7 @@ class ChecklistDetailScreen extends StatelessWidget {
             child: IconButton(
               icon: const Icon(Icons.edit_outlined, size: 20),
               onPressed: () {
+                // return null;
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -53,17 +57,6 @@ class ChecklistDetailScreen extends StatelessWidget {
                   ),
                 );
               },
-            ),
-          ),
-          Container(
-            margin: const EdgeInsets.only(right: 16),
-            decoration: BoxDecoration(
-              color: lightBlue,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: IconButton(
-              icon: const Icon(Icons.share_outlined, size: 20),
-              onPressed: () => _shareChecklist(context),
             ),
           ),
         ],
@@ -100,7 +93,7 @@ class ChecklistDetailScreen extends StatelessWidget {
                   const SizedBox(height: 24),
 
                   // Footer Info
-                  _buildFooter(),
+                  _buildFooter(context),
 
                   const SizedBox(height: 80), // Space for FAB
                 ],
@@ -109,29 +102,6 @@ class ChecklistDetailScreen extends StatelessWidget {
           ),
         ],
       ),
-      floatingActionButton: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: primaryBlue.withOpacity(0.3),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: FloatingActionButton.extended(
-          onPressed: () => _exportChecklist(context),
-          icon: const Icon(Icons.download_rounded),
-          label: const Text(
-            'Export Report',
-            style: TextStyle(fontWeight: FontWeight.w600),
-          ),
-          backgroundColor: primaryBlue,
-          elevation: 0,
-        ),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
   }
 
@@ -310,11 +280,11 @@ class ChecklistDetailScreen extends StatelessWidget {
                           color: Colors.white.withOpacity(0.2),
                           margin: const EdgeInsets.symmetric(horizontal: 20),
                         ),
-                        _buildDateTimeItem(
-                          Icons.access_time_rounded,
-                          DateFormat('HH:mm').format(checklist.date),
-                          'Time',
-                        ),
+                        // _buildDateTimeItem(
+                        //   Icons.access_time_rounded,
+                        //   checklist.createdAtFormattedTime,
+                        //   'Created',
+                        // ),
                       ],
                     ),
                   ),
@@ -350,7 +320,7 @@ class ChecklistDetailScreen extends StatelessWidget {
               ),
               const SizedBox(height: 2),
               Text(
-                'Inspection',
+                label,
                 style: TextStyle(
                   color: Colors.white.withOpacity(0.6),
                   fontSize: 11,
@@ -463,7 +433,7 @@ class ChecklistDetailScreen extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             const Text(
-              'Inspection Items',
+              'Safety Checklist Items',
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -497,17 +467,18 @@ class ChecklistDetailScreen extends StatelessWidget {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: checklist.items.length,
-      separatorBuilder: (context, index) => const SizedBox(height: 12),
+      separatorBuilder: (context, index) => const SizedBox(height: 16),
       itemBuilder: (context, index) {
-        final item = checklist.items[index];
-        return _buildModernItemCard(context, item, index + 1);
+        final serviceItem = checklist.items[index];
+        return _buildCategorySection(context, serviceItem, index);
       },
     );
   }
 
-  Widget _buildModernItemCard(
-      BuildContext context, ChecklistItem item, int number) {
-    final bool hasNote = item.note != null && item.note!.isNotEmpty;
+  Widget _buildCategorySection(
+      BuildContext context, ServiceCheckerItem serviceItem, int index) {
+    final category = serviceItem.category;
+    final inspectionItems = serviceItem.inspectionItems;
 
     return Container(
       decoration: BoxDecoration(
@@ -521,222 +492,155 @@ class ChecklistDetailScreen extends StatelessWidget {
           ),
         ],
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: Material(
-          color: Colors.transparent,
-          child: ExpansionTile(
-            tilePadding:
-                const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-            childrenPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-            expandedCrossAxisAlignment: CrossAxisAlignment.start,
-            leading: Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: item.passed ? Colors.green.shade50 : Colors.red.shade50,
-                borderRadius: BorderRadius.circular(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Category Header
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF0F9FF),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(20),
               ),
-              child: Center(
-                child: Text(
-                  '$number',
-                  style: TextStyle(
-                    color: item.passed ? Colors.green : Colors.red,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
+              border: Border(
+                bottom: BorderSide(color: Colors.grey.shade200),
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
                   ),
+                  child: Icon(
+                    Icons.category_rounded,
+                    color: const Color(0xFF1E40AF),
+                    size: 18,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        category.khmerName ?? category.name,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1E3A8A),
+                        ),
+                      ),
+                      Text(
+                        '${inspectionItems.length} items',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Inspection Items
+          ...inspectionItems.asMap().entries.map((entry) {
+            final itemIndex = entry.key;
+            final item = entry.value;
+            return _buildInspectionItem(context, item, itemIndex + 1);
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInspectionItem(
+      BuildContext context, ChecklistItem item, int number) {
+    final bool hasNote = item.note != null && item.note!.isNotEmpty;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          Container(
+            width: 30,
+            height: 30,
+            decoration: BoxDecoration(
+              color: item.passed ? Colors.green.shade50 : Colors.red.shade50,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Center(
+              child: Text(
+                '$number',
+                style: TextStyle(
+                  color: item.passed ? Colors.green : Colors.red,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
                 ),
               ),
             ),
-            title: Text(
-              item.khmerName ?? item.name,
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey.shade800,
-              ),
-            ),
-            subtitle: Padding(
-              padding: const EdgeInsets.only(top: 6),
-              child: Row(
-                children: [
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.khmerName ?? item.name,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                if (hasNote) ...[
+                  const SizedBox(height: 4),
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: item.passed
-                          ? Colors.green.shade50
-                          : Colors.red.shade50,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: item.passed
-                            ? Colors.green.shade200
-                            : Colors.red.shade200,
-                      ),
-                    ),
                     child: Row(
-                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
-                          item.passed
-                              ? Icons.check_rounded
-                              : Icons.close_rounded,
-                          size: 12,
-                          color: item.passed ? Colors.green : Colors.red,
+                          Icons.note_alt_rounded,
+                          size: 14,
+                          color: Colors.grey.shade500,
                         ),
-                        const SizedBox(width: 4),
-                        Text(
-                          item.passed ? 'PASSED' : 'FAILED',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                            color: item.passed ? Colors.green : Colors.red,
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            item.note!,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade500,
+                            ),
                           ),
                         ),
                       ],
                     ),
                   ),
-                  if (hasNote) ...[
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: Colors.orange.shade50,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Icon(
-                        Icons.note_alt_outlined,
-                        size: 14,
-                        color: Colors.orange.shade600,
-                      ),
-                    ),
-                  ],
                 ],
-              ),
-            ),
-            trailing: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: surfaceBlue,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(
-                Icons.keyboard_arrow_down_rounded,
-                color: primaryBlue,
-                size: 20,
-              ),
-            ),
-            children: [
-              Divider(color: Colors.grey.shade100, height: 20),
-              if (hasNote)
-                _buildNoteSection(item.note!)
-              else if (!item.passed)
-                _buildNoNoteWarning()
-              else
-                _buildSuccessMessage(),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNoteSection(String note) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Colors.orange.shade50,
-            Colors.orange.shade100.withOpacity(0.3)
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.orange.shade200),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.note_alt_rounded,
-                  color: Colors.orange.shade600, size: 18),
-              const SizedBox(width: 8),
-              Text(
-                'Inspector Note',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.orange.shade800,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Text(
-            note,
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.orange.shade900,
-              height: 1.5,
+              ],
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNoNoteWarning() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.info_outline_rounded,
-              color: Colors.grey.shade500, size: 20),
-          const SizedBox(width: 12),
-          Expanded(
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: item.passed ? Colors.green.shade50 : Colors.red.shade50,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color:
+                    item.passed ? Colors.green.shade200 : Colors.red.shade200,
+              ),
+            ),
             child: Text(
-              'No additional notes provided for this failed item',
+              item.passed ? 'មាន' : 'មិនមាន',
               style: TextStyle(
-                fontSize: 13,
-                color: Colors.grey.shade600,
-                fontStyle: FontStyle.italic,
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                color: item.passed ? Colors.green : Colors.red,
               ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSuccessMessage() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.green.shade50,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.green.shade200),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.verified_rounded, color: Colors.green.shade600, size: 20),
-          const SizedBox(width: 12),
-          Text(
-            'Item passed all inspection criteria',
-            style: TextStyle(
-              fontSize: 13,
-              color: Colors.green.shade700,
-              fontWeight: FontWeight.w500,
             ),
           ),
         ],
@@ -788,71 +692,284 @@ class ChecklistDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildFooter() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade100),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: surfaceBlue,
-                  borderRadius: BorderRadius.circular(10),
+  Widget _buildFooter(BuildContext context) {
+    return Column(
+      children: [
+        // Image Section (if available)
+        if (checklist.imagePath != null && checklist.imagePath!.isNotEmpty)
+          Container(
+            margin: const EdgeInsets.only(bottom: 20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.shade200,
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
                 ),
-                child: Icon(
-                  Icons.access_time_rounded,
-                  size: 16,
-                  color: primaryBlue,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(24),
+              child: Stack(
                 children: [
-                  Text(
-                    'Created',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: Colors.grey.shade500,
-                      fontWeight: FontWeight.w500,
+                  // Main Image
+                  Image.network(
+                    ApiService.homeUrl + checklist.imagePath!,
+                    height: 200,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return _buildImageError();
+                    },
+                  ),
+
+                  // Image Gradient Overlay
+                  Positioned(
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    child: Container(
+                      height: 80,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.transparent,
+                            Colors.black.withOpacity(0.7),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
-                  Text(
-                    checklist.createdAt != null
-                        ? DateFormat('dd MMM yyyy, HH:mm')
-                            .format(checklist.createdAt!)
-                        : 'Unknown',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey.shade700,
-                      fontWeight: FontWeight.w600,
+
+                  // Image Badge
+                  Positioned(
+                    top: 16,
+                    right: 16,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: darkBlue.withOpacity(0.9),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.3),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.2),
+                            blurRadius: 10,
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.camera_alt_rounded,
+                            color: Colors.white.withOpacity(0.9),
+                            size: 14,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'VEHICLE PHOTO',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white.withOpacity(0.9),
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  // License Plate Overlay
+                  Positioned(
+                    bottom: 16,
+                    left: 16,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.6),
+                        borderRadius: BorderRadius.circular(30),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.2),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.local_taxi_rounded,
+                            color: accentBlue,
+                            size: 16,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            checklist.licensePlate,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                              letterSpacing: 1,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  // Expand Button
+                  Positioned(
+                    bottom: 16,
+                    right: 16,
+                    child: GestureDetector(
+                      onTap: () => _showFullScreenImage(context),
+                      child: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: primaryBlue,
+                          borderRadius: BorderRadius.circular(30),
+                          boxShadow: [
+                            BoxShadow(
+                              color: primaryBlue.withOpacity(0.4),
+                              blurRadius: 10,
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.fullscreen_rounded,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+        // Footer Info Card
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.grey.shade100),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.shade100,
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              // Main Footer Row
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: surfaceBlue,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(
+                          Icons.access_time_rounded,
+                          size: 16,
+                          color: primaryBlue,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Created',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey.shade500,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          Text(
+                            checklist.createdAt != null
+                                ? DateFormat('dd MMM yyyy, HH:mm')
+                                    .format(checklist.createdAt!)
+                                : 'Unknown',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey.shade700,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: darkBlue,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      'ID: ${checklist.id ?? 'N/A'}',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ],
               ),
             ],
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: darkBlue,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              'ID: ${checklist.id ?? 'N/A'}',
-              style: const TextStyle(
-                fontSize: 11,
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-              ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildImageError() {
+    return Container(
+      height: 200,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.broken_image_rounded,
+            size: 40,
+            color: Colors.grey.shade400,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Image not available',
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey.shade500,
             ),
           ),
         ],
@@ -860,109 +977,132 @@ class ChecklistDetailScreen extends StatelessWidget {
     );
   }
 
-  void _shareChecklist(BuildContext context) {
-    final summary = '''
-🚗 SAFETY CHECKLIST REPORT
-━━━━━━━━━━━━━━━━━━━━━━
-🆔 License Plate: ${checklist.licensePlate}
-📅 Date: ${DateFormat('dd MMM yyyy').format(checklist.date)}
-⏰ Time: ${DateFormat('HH:mm').format(checklist.date)}
-
-📊 SUMMARY
-• Total Items: ${checklist.totalItems}
-• ✅ Passed: ${checklist.checkedCount}
-• ❌ Failed: ${checklist.notCheckedCount}
-• 📈 Pass Rate: ${checklist.passRate.toStringAsFixed(1)}%
-
-🔍 ITEMS:
-${checklist.items.map((item) => '${item.passed ? '✅' : '❌'} ${item.khmerName ?? item.name}${item.note != null ? '\n   📝 ${item.note}' : ''}').join('\n')}
-''';
-
-    // Show modern snackbar
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(Icons.check_rounded,
-                  color: Colors.white, size: 20),
-            ),
-            const SizedBox(width: 12),
-            const Expanded(
-              child: Text(
-                'Report copied to clipboard',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
-            ),
-          ],
-        ),
-        backgroundColor: darkBlue,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        margin: const EdgeInsets.all(20),
-        duration: const Duration(seconds: 2),
-      ),
-    );
-
-    // Clipboard.setData(ClipboardData(text: summary));
-  }
-
-  void _exportChecklist(BuildContext context) {
-    // Implement PDF generation or sharing
-    showModalBottomSheet(
+  void _showFullScreenImage(BuildContext context) {
+    if (checklist.imagePath == null || checklist.imagePath!.isEmpty) return;
+    final imageUrl = ApiService.homeUrl + checklist.imagePath!;
+    showDialog(
       context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(16),
+        child: Stack(
           children: [
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(2),
+            // Full Screen Image
+            ClipRRect(
+              borderRadius: BorderRadius.circular(24),
+              child: Image.network(
+                imageUrl,
+                width: double.infinity,
+                height: double.infinity,
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    color: Colors.black87,
+                    child: const Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.broken_image_rounded,
+                            size: 60,
+                            color: Colors.white54,
+                          ),
+                          SizedBox(height: 16),
+                          Text(
+                            'Failed to load image',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
-            const SizedBox(height: 24),
-            const Text(
-              'Export Report',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: darkBlue,
+
+            // Close Button
+            Positioned(
+              top: 16,
+              right: 16,
+              child: GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.5),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.3),
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.close_rounded,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                ),
               ),
             ),
-            const SizedBox(height: 24),
-            _buildExportOption(
-              Icons.picture_as_pdf_rounded,
-              'Export as PDF',
-              Colors.red,
-              () {},
-            ),
-            const SizedBox(height: 12),
-            _buildExportOption(
-              Icons.share_rounded,
-              'Share Report',
-              primaryBlue,
-              () => _shareChecklist(context),
-            ),
-            const SizedBox(height: 12),
-            _buildExportOption(
-              Icons.print_rounded,
-              'Print Report',
-              Colors.grey,
-              () {},
+
+            // Image Info
+            Positioned(
+              bottom: 24,
+              left: 24,
+              right: 24,
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.7),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.2),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: primaryBlue,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.local_taxi_rounded,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            checklist.licensePlate,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            DateFormat('dd MMM yyyy, HH:mm')
+                                .format(checklist.createdAt!),
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.7),
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ],
         ),

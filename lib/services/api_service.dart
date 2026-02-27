@@ -3,13 +3,15 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:safety_check_list/models/device_info.dart';
+// import 'package:safety_check_list/models/service_checker_request.dart';
 import '../models/category.dart';
 import '../models/service_checker.dart';
 import '../models/inspection.dart';
 
 class ApiService {
-  static const String baseUrl =
-      'http://192.168.0.37:8081/api/v1'; // Update with your server IP
+  static const String homeUrl = 'http://192.168.0.37:8081';
+  static const String baseUrl = 'http://192.168.0.37:8081/api/v1';
+  // 'http://172.20.10.4:8081/api/v1';
   static const String categoriesEndpoint = '/categories';
   static const String checklistsEndpoint = '/service-checkers';
   static const String uploadEndpoint =
@@ -229,7 +231,7 @@ class ApiService {
     int page = 1,
     int limit = 20,
     String? dateFilter,
-    int? driverId,
+    required DeviceInfo deviceInfo,
   }) async {
     try {
       String url = '$baseUrl$checklistsEndpoint/list?page=$page&limit=$limit';
@@ -238,9 +240,7 @@ class ApiService {
         url += '&dateFilter=$dateFilter';
       }
 
-      if (driverId != null) {
-        url += '&driverId=$driverId';
-      }
+      url += '&deviceId=${deviceInfo.deviceId}';
 
       print('Fetching checklists from: $url');
 
@@ -255,7 +255,9 @@ class ApiService {
       print('Get checklists response status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
-        return json.decode(response.body);
+        final Map<String, dynamic> data = json.decode(response.body);
+        print("📦 Received checklists response: $data");
+        return data;
       } else {
         throw Exception('Failed to load checklists: ${response.statusCode}');
       }
@@ -338,5 +340,12 @@ class ApiService {
       print('Response data: $response');
       return [];
     }
+  }
+
+  Future<String> getFullImageUrl(String imagePath) async {
+    if (imagePath.startsWith('http')) {
+      return imagePath;
+    }
+    return '$baseUrl$imagePath';
   }
 }

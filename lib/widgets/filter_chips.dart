@@ -45,7 +45,7 @@ class FilterChips extends StatelessWidget {
           onFilterChanged(value);
         }
       },
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Colors.white,
       selectedColor: Colors.blue.withOpacity(0.2),
       checkmarkColor: Colors.blue,
       labelStyle: TextStyle(

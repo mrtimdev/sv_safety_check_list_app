@@ -4,9 +4,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:safety_check_list/models/device_info.dart';
+import 'package:safety_check_list/models/service_checker.dart';
 import '../models/category.dart';
 import '../models/inspection.dart';
-import '../models/service_checker.dart';
 import '../widgets/category_card.dart';
 import '../services/api_service.dart';
 import '../widgets/loading_indicator.dart';
@@ -29,8 +29,10 @@ class _ChecklistFormScreenState extends State<ChecklistFormScreen> {
   final ApiService _apiService = ApiService();
 
   String _licensePlate = '';
+  String _licensePlateEstimated = '';
   String? _imagePath;
   DateTime _selectedDate = DateTime.now();
+  int? _editingId;
 
   // Data from API
   List<Category> _categories = [];
@@ -40,7 +42,7 @@ class _ChecklistFormScreenState extends State<ChecklistFormScreen> {
   DeviceInfo? _deviceInfo;
   bool _loadingDeviceInfo = true;
 
-  // Inspections map
+  // Inspections map organized by category
   late Map<int, List<Inspection>> _inspections;
 
   // Track which items need note validation
@@ -49,27 +51,17 @@ class _ChecklistFormScreenState extends State<ChecklistFormScreen> {
   @override
   void initState() {
     super.initState();
-    _loadCategories();
     _loadDeviceInfo();
+    _loadCategories();
 
     // If editing existing checklist
     if (widget.checklistToEdit != null) {
+      _editingId = widget.checklistToEdit!.id;
       _licensePlate = widget.checklistToEdit!.licensePlate;
+      _licensePlateEstimated =
+          widget.checklistToEdit!.licensePlateEstimated ?? '';
       _imagePath = widget.checklistToEdit!.imagePath;
       _selectedDate = widget.checklistToEdit!.date;
-      _inspections = widget.checklistToEdit!.items
-          .map((item) {
-            return Inspection(
-              itemId: item.id,
-              itemName: item.khmerName ?? item.name,
-              passed: item.passed,
-              note: item.note,
-            );
-          })
-          .toList()
-          .asMap()
-          .map(
-              (index, inspection) => MapEntry(inspection.itemId, [inspection]));
     }
   }
 
@@ -111,9 +103,53 @@ class _ChecklistFormScreenState extends State<ChecklistFormScreen> {
   }
 
   void _initializeInspections() {
-    // Only initialize if not editing or if inspections are empty
-    if (widget.checklistToEdit == null || _inspections.isEmpty) {
-      _inspections = {};
+    _inspections = {};
+
+    if (widget.checklistToEdit != null &&
+        widget.checklistToEdit!.items.isNotEmpty) {
+      // Initialize from existing ServiceChecker data
+      print(
+          '📋 Initializing from existing checklist with ${widget.checklistToEdit!.items.length} items');
+
+      for (var category in _categories) {
+        _inspections[category.id] = [];
+      }
+
+      // Process each ServiceCheckerItem
+      for (var serviceItem in widget.checklistToEdit!.items) {
+        final categoryId = serviceItem.category.id;
+
+        // Get all inspection items from this service item
+        final checklistItems = serviceItem.inspectionItems;
+
+        for (var item in checklistItems) {
+          _inspections[categoryId]?.add(Inspection(
+            itemId: item.id,
+            itemName: item.khmerName ?? item.name,
+            passed: item.passed,
+            note: item.note,
+          ));
+        }
+      }
+
+      // Fill in any missing items from categories (in case API response doesn't include all)
+      for (var category in _categories) {
+        final existingItemIds =
+            _inspections[category.id]?.map((i) => i.itemId).toSet() ?? {};
+
+        for (var categoryItem in category.items) {
+          if (!existingItemIds.contains(categoryItem.id)) {
+            _inspections[category.id]?.add(Inspection(
+              itemId: categoryItem.id,
+              itemName: categoryItem.khmerName,
+              passed: true, // Default to passed for missing items
+              note: null,
+            ));
+          }
+        }
+      }
+    } else {
+      // Initialize new checklist with all categories and items defaulting to passed
       for (var category in _categories) {
         _inspections[category.id] = category.items
             .map((item) => Inspection(
@@ -125,6 +161,11 @@ class _ChecklistFormScreenState extends State<ChecklistFormScreen> {
             .toList();
       }
     }
+
+    // Sort inspections by item ID or name to maintain consistent order
+    _inspections.forEach((categoryId, inspections) {
+      inspections.sort((a, b) => a.itemId.compareTo(b.itemId));
+    });
   }
 
   Future<void> _selectDate() async {
@@ -159,9 +200,12 @@ class _ChecklistFormScreenState extends State<ChecklistFormScreen> {
       context,
       MaterialPageRoute(
         builder: (context) => LicensePlateScannerScreen(
-          onPlateScanned: (plate, imagePath) {
+          licensePlateEstimated: _licensePlateEstimated,
+          imagePath: _imagePath ?? '',
+          onPlateScanned: (plate, estimated, imagePath) {
             setState(() {
               _licensePlate = plate;
+              _licensePlateEstimated = estimated ?? '';
               _imagePath = imagePath;
             });
           },
@@ -220,7 +264,7 @@ class _ChecklistFormScreenState extends State<ChecklistFormScreen> {
     });
 
     try {
-      // Prepare categories data matching Spring Boot CategoryItemRequest structure
+      // Prepare categories data matching the backend CategoryItemRequest structure
       final List<Map<String, dynamic>> categoriesData = [];
 
       for (var category in _categories) {
@@ -246,11 +290,17 @@ class _ChecklistFormScreenState extends State<ChecklistFormScreen> {
         });
       }
 
-      // Prepare the complete request data matching Spring Boot ServiceCheckerRequest
+      // return;
+
+      // Prepare the complete request data
       final Map<String, dynamic> requestData = {
         'date': DateFormat('yyyy-MM-dd').format(_selectedDate),
         'licensePlate': _licensePlate.toUpperCase().trim(),
-        'driverId': 1, // Default driver ID
+        'licensePlateEstimated': _licensePlateEstimated.isNotEmpty
+            ? _licensePlateEstimated.toUpperCase().trim()
+            : null,
+        'driverId':
+            1, // Default driver ID - you might want to make this dynamic
         'categories': categoriesData,
       };
 
@@ -268,10 +318,12 @@ class _ChecklistFormScreenState extends State<ChecklistFormScreen> {
         }
       }
 
-      if (widget.checklistToEdit != null) {
-        // Update existing checklist with optional image
-        final response = await _apiService.updateChecklist(
-          widget.checklistToEdit!.id!,
+      dynamic response;
+
+      if (_editingId != null) {
+        // Update existing checklist
+        response = await _apiService.updateChecklist(
+          _editingId!,
           requestData,
           imageFile: imageFile,
           deviceInfo: _deviceInfo!,
@@ -284,8 +336,8 @@ class _ChecklistFormScreenState extends State<ChecklistFormScreen> {
               response['message'] ?? 'Checklist updated successfully!');
         }
       } else {
-        // Create new checklist with image
-        final response = await _apiService.createChecklist(
+        // Create new checklist
+        response = await _apiService.createChecklist(
           requestData,
           imageFile: imageFile,
           deviceInfo: _deviceInfo!,
@@ -300,7 +352,7 @@ class _ChecklistFormScreenState extends State<ChecklistFormScreen> {
       }
 
       if (mounted) {
-        // Navigate back with success
+        // Navigate back with success and the updated/created data
         Navigator.pop(context, true);
       }
     } catch (e) {
@@ -397,7 +449,7 @@ class _ChecklistFormScreenState extends State<ChecklistFormScreen> {
           inspections[index].passed = passed;
           inspections[index].note = note;
 
-          // Clear validation error if note is provided
+          // Clear validation error if note is provided for failed items
           if (!passed && note != null && note.isNotEmpty) {
             _noteValidationErrors.remove(itemId);
           } else if (!passed && (note == null || note.isEmpty)) {
@@ -410,14 +462,32 @@ class _ChecklistFormScreenState extends State<ChecklistFormScreen> {
     });
   }
 
+  int get _totalItems {
+    return _inspections.values.fold(0, (sum, list) => sum + list.length);
+  }
+
+  int get _failedItems {
+    return _inspections.values
+        .fold(0, (sum, list) => sum + list.where((i) => !i.passed).length);
+  }
+
+  int get _itemsWithNotes {
+    return _inspections.values.fold(
+        0,
+        (sum, list) =>
+            sum +
+            list
+                .where((i) => !i.passed && i.note != null && i.note!.isNotEmpty)
+                .length);
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loadingDeviceInfo) {
       return Scaffold(
         appBar: AppBar(
-          title: Text(widget.checklistToEdit != null
-              ? 'Edit Safety Check'
-              : 'New Safety Check'),
+          title: Text(
+              _editingId != null ? 'Edit Safety Check' : 'New Safety Check'),
           backgroundColor: Colors.white,
           foregroundColor: const Color(0xFF1E3A8A),
           elevation: 0,
@@ -438,9 +508,7 @@ class _ChecklistFormScreenState extends State<ChecklistFormScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          widget.checklistToEdit != null
-              ? 'Edit Safety Check'
-              : 'New Safety Check',
+          _editingId != null ? 'Edit Safety Check' : 'New Safety Check',
           style: const TextStyle(
             fontWeight: FontWeight.w600,
             color: Color(0xFF1E3A8A),
@@ -466,7 +534,7 @@ class _ChecklistFormScreenState extends State<ChecklistFormScreen> {
         ],
       ),
       body: _isLoading && _categories.isEmpty
-          ? const LoadingIndicator(message: 'Loading categories...')
+          ? const LoadingIndicator(message: 'Loading inspection items...')
           : _errorMessage != null
               ? _buildErrorWidget()
               : Form(
@@ -494,7 +562,8 @@ class _ChecklistFormScreenState extends State<ChecklistFormScreen> {
                                   ? const Center(
                                       child: Padding(
                                         padding: EdgeInsets.all(32),
-                                        child: Text('No categories available'),
+                                        child: Text(
+                                            'No inspection categories available'),
                                       ),
                                     )
                                   : ListView.builder(
@@ -536,18 +605,6 @@ class _ChecklistFormScreenState extends State<ChecklistFormScreen> {
   }
 
   Widget _buildHeader() {
-    int totalItems =
-        _inspections.values.fold(0, (sum, list) => sum + list.length);
-    int failedItems = _inspections.values
-        .fold(0, (sum, list) => sum + list.where((i) => !i.passed).length);
-    int itemsWithNotes = _inspections.values.fold(
-        0,
-        (sum, list) =>
-            sum +
-            list
-                .where((i) => !i.passed && i.note != null && i.note!.isNotEmpty)
-                .length);
-
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
@@ -586,7 +643,7 @@ class _ChecklistFormScreenState extends State<ChecklistFormScreen> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '$failedItems of $totalItems items failed',
+                  '$_failedItems of $_totalItems items failed',
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
@@ -596,11 +653,11 @@ class _ChecklistFormScreenState extends State<ChecklistFormScreen> {
               ],
             ),
           ),
-          if (failedItems > 0)
+          if (_failedItems > 0)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
-                color: itemsWithNotes == failedItems
+                color: _itemsWithNotes == _failedItems
                     ? Colors.green.withOpacity(0.1)
                     : Colors.orange.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(20),
@@ -608,21 +665,21 @@ class _ChecklistFormScreenState extends State<ChecklistFormScreen> {
               child: Row(
                 children: [
                   Icon(
-                    itemsWithNotes == failedItems
+                    _itemsWithNotes == _failedItems
                         ? Icons.check_circle
                         : Icons.warning,
                     size: 14,
-                    color: itemsWithNotes == failedItems
+                    color: _itemsWithNotes == _failedItems
                         ? Colors.green
                         : Colors.orange,
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    '$itemsWithNotes/$failedItems notes',
+                    '$_itemsWithNotes/$_failedItems notes',
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
-                      color: itemsWithNotes == failedItems
+                      color: _itemsWithNotes == _failedItems
                           ? Colors.green
                           : Colors.orange,
                     ),
@@ -654,6 +711,7 @@ class _ChecklistFormScreenState extends State<ChecklistFormScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Header Row
           Row(
             children: [
               Container(
@@ -695,8 +753,12 @@ class _ChecklistFormScreenState extends State<ChecklistFormScreen> {
             ],
           ),
           const SizedBox(height: 16),
+
+          // Input Row with TextField and Camera Button
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Expanded TextField
               Expanded(
                 child: TextFormField(
                   initialValue: _licensePlate,
@@ -737,19 +799,22 @@ class _ChecklistFormScreenState extends State<ChecklistFormScreen> {
                     ),
                   ),
                   textCapitalization: TextCapitalization.characters,
-                  onChanged: (value) => _licensePlate = value.toUpperCase(),
+                  // onChanged: (value) => _licensePlate = value.toUpperCase(),
+                  onChanged: _updateLicensePlate,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Please enter license plate';
+                      return 'សូមផ្ទៀងផ្ទាត់ការបញ្ចូលផ្លាកលេខម្តងទៀត';
                     }
                     if (value.length < 3) {
-                      return 'License plate is too short';
+                      return 'ផ្លាកលេខមិនត្រឹមត្រូវ';
                     }
                     return null;
                   },
                 ),
               ),
               const SizedBox(width: 12),
+
+              // Camera Button
               Container(
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
@@ -771,43 +836,312 @@ class _ChecklistFormScreenState extends State<ChecklistFormScreen> {
                   icon: const Icon(Icons.camera_alt, color: Colors.white),
                   onPressed: _scanLicensePlate,
                   tooltip: 'Scan License Plate',
+                  iconSize: 24,
                 ),
               ),
             ],
           ),
-          if (_imagePath != null) ...[
+
+          // Estimated Plate Display with View Button (when available)
+          if (_licensePlateEstimated.isNotEmpty) ...[
             const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: Colors.green.withOpacity(0.05),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.green.withOpacity(0.3)),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.check_circle, color: Colors.green, size: 18),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      'License plate image captured',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey[700],
+            Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: _showEstimatedPlateDialog,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.blue.shade200),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.camera_alt,
+                              size: 18, color: Colors.blue.shade700),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: LayoutBuilder(
+                              builder: (context, constraints) {
+                                return Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Scanned Plate',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: Colors.blue.shade700,
+                                        fontWeight: FontWeight.w600,
+                                        letterSpacing: 0.3,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        _removeAllWhitespace(
+                                            _licensePlateEstimated),
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: Colors.blue.shade900,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Icon(
+                            Icons.chevron_right,
+                            size: 18,
+                            color: Colors.blue.shade400,
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.close, size: 18, color: Colors.grey),
-                    onPressed: () => setState(() => _imagePath = null),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
+                ),
+              ],
+            ),
+          ],
+
+          // Image Preview Section
+          if (_imagePath != null) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.grey.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey.withOpacity(0.3)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.check_circle, color: Colors.green, size: 16),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'រូបភាពផ្លាកលេខរថយន្ត',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[700],
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
+                  IconButton(
+                    icon: const Icon(Icons.close, size: 16, color: Colors.grey),
+                    onPressed: () => setState(() => _imagePath = null),
+                    padding: const EdgeInsets.all(4),
+                    constraints: const BoxConstraints(),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  if (_imagePath != null && _imagePath!.isNotEmpty)
+                    IconButton(
+                      icon: const Icon(Icons.visibility,
+                          size: 16, color: Color(0xFF1E3A8A)),
+                      onPressed: () => _showImagePreview(context),
+                      padding: const EdgeInsets.all(4),
+                      constraints: const BoxConstraints(),
+                      visualDensity: VisualDensity.compact,
+                    ),
                 ],
               ),
             ),
           ],
         ],
+      ),
+    );
+  }
+
+  void _updateLicensePlate(String value) {
+    setState(() {
+      _licensePlate = value.toUpperCase();
+      _licensePlateEstimated = _licensePlateEstimated.isNotEmpty
+          ? _licensePlateEstimated.toUpperCase()
+          : _licensePlateEstimated;
+    });
+  }
+
+  String _removeAllWhitespace(String text) {
+    // Remove all whitespace and convert to uppercase
+    String cleanText = text.replaceAll(RegExp(r'\s+'), '').toUpperCase();
+
+    // Add space between letters and numbers (e.g., "KH1234" -> "KH 1234")
+    final RegExp pattern = RegExp(r'^([A-Z]+)([0-9].*)$');
+    return cleanText.replaceFirstMapped(pattern, (match) {
+      return '${match[1]} ${match[2]}';
+    });
+  }
+
+  void _showEstimatedPlateDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.camera_alt, color: Colors.blue.shade700),
+            const SizedBox(width: 8),
+            const Text('Scanned License Plate'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Raw scanned text from image:',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(16),
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              child: Text(
+                _licensePlateEstimated,
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 2,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Tap "Use This Plate" to copy it to the input field',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              setState(() {
+                _licensePlate = _licensePlateEstimated;
+              });
+              Navigator.pop(context);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Use This Plate'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showImagePreview(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(16),
+        child: Stack(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(24),
+              child: Image.file(
+                File(_imagePath!),
+                width: double.infinity,
+                height: double.infinity,
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    color: Colors.black87,
+                    child: const Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.broken_image_rounded,
+                              size: 60, color: Colors.white54),
+                          SizedBox(height: 16),
+                          Text(
+                            'Failed to load image',
+                            style:
+                                TextStyle(color: Colors.white70, fontSize: 16),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            Positioned(
+              top: 16,
+              right: 16,
+              child: GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.5),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white.withOpacity(0.3)),
+                  ),
+                  child: const Icon(Icons.close_rounded,
+                      color: Colors.white, size: 24),
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: 24,
+              left: 24,
+              right: 24,
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.7),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.white.withOpacity(0.2)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _licensePlate.isNotEmpty
+                          ? _licensePlate
+                          : 'Vehicle Image',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      DateFormat('dd MMM yyyy, HH:mm').format(_selectedDate),
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.7),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -984,11 +1318,7 @@ class _ChecklistFormScreenState extends State<ChecklistFormScreen> {
           children: [
             Expanded(
               child: OutlinedButton(
-                onPressed: _isLoading
-                    ? null
-                    : () {
-                        Navigator.pop(context);
-                      },
+                onPressed: _isLoading ? null : () => Navigator.pop(context),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: Colors.grey.shade700,
                   side: BorderSide(color: Colors.grey.shade300),
@@ -1017,7 +1347,7 @@ class _ChecklistFormScreenState extends State<ChecklistFormScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      widget.checklistToEdit != null ? 'Update' : 'Save',
+                      _editingId != null ? 'Update' : 'Save',
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
