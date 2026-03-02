@@ -553,7 +553,7 @@ class _ChecklistFormScreenState extends State<ChecklistFormScreen> {
                               _buildLicensePlateSection(),
 
                               // Date Picker
-                              _buildDateSection(),
+                              // _buildDateSection(),
 
                               const SizedBox(height: 8),
 

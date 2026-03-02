@@ -13,23 +13,23 @@ class FilterChips extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 50,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: ListView(
+      width: double.infinity, // Full width
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
-        children: [
-          _buildFilterChip('All', 'all'),
-          const SizedBox(width: 8),
-          _buildFilterChip('Today', 'today'),
-          const SizedBox(width: 8),
-          _buildFilterChip('This Week', 'week'),
-          const SizedBox(width: 8),
-          _buildFilterChip('This Month', 'month'),
-          const SizedBox(width: 8),
-          _buildFilterChip('Passed', 'passed'),
-          const SizedBox(width: 8),
-          _buildFilterChip('Failed', 'failed'),
-        ],
+        child: Row(
+          children: [
+            _buildFilterChip('All Time', 'all'),
+            const SizedBox(width: 12),
+            _buildFilterChip('Today', 'today'),
+            const SizedBox(width: 12),
+            _buildFilterChip('Yesterday', 'yesterday'),
+            const SizedBox(width: 12),
+            _buildFilterChip('Last 7 Days', 'last7Days'),
+            const SizedBox(width: 12),
+            _buildFilterChip('Last 30 Days', 'last30Days'),
+          ],
+        ),
       ),
     );
   }
@@ -38,7 +38,14 @@ class FilterChips extends StatelessWidget {
     final isSelected = selectedFilter == value;
 
     return FilterChip(
-      label: Text(label),
+      label: Text(
+        label,
+        style: TextStyle(
+          fontSize: 13,
+          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+          color: isSelected ? Colors.white : Colors.grey.shade700,
+        ),
+      ),
       selected: isSelected,
       onSelected: (selected) {
         if (selected) {
@@ -46,13 +53,18 @@ class FilterChips extends StatelessWidget {
         }
       },
       backgroundColor: Colors.white,
-      selectedColor: Colors.blue.withOpacity(0.2),
-      checkmarkColor: Colors.blue,
-      labelStyle: TextStyle(
-        color: isSelected ? Colors.blue : Colors.grey[700],
-        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+      selectedColor: const Color(0xFF1E3A8A), // Using your primary color
+      checkmarkColor: Colors.white,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+        side: BorderSide(
+          color: isSelected ? const Color(0xFF1E3A8A) : Colors.grey.shade300,
+          width: 1,
+        ),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      elevation: isSelected ? 2 : 0,
+      shadowColor: const Color(0xFF1E3A8A).withOpacity(0.3),
     );
   }
 }

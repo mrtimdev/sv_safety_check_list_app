@@ -1,0 +1,34 @@
+{
+  "@@locale": "en",
+
+  "appTitle": "Safety Check Lists",
+  "@appTitle": {
+    "description": "Application title"
+  },
+
+  "login": "Login",
+  "logout": "Logout",
+  "home": "Home",
+  "welcome": "Welcome",
+  "language": "Language",
+  "english": "English",
+  "khmer": "Khmer",
+
+  "checkIn": "Check In",
+  "checkOut": "Check Out",
+  "cancel": "Cancel",
+  "submit": "Submit",
+  "save": "Save",
+
+  "date": "Date",
+  "time": "Time",
+  "createdAt": "Created At",
+  "cancelledAt": "Cancelled At",
+
+  "noData": "No Data Available",
+  "loading": "Loading...",
+  "error": "Something went wrong",
+
+  "todayIsDayOff": "Today is day-off. Please check your roster or contact HR.",
+  "checkOtRequest": "Please check your OT request and try again."
+}

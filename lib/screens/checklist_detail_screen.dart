@@ -45,19 +45,19 @@ class ChecklistDetailScreen extends StatelessWidget {
               color: lightBlue,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: IconButton(
-              icon: const Icon(Icons.edit_outlined, size: 20),
-              onPressed: () {
-                // return null;
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) =>
-                        ChecklistFormScreen(checklistToEdit: checklist),
-                  ),
-                );
-              },
-            ),
+            // child: IconButton(
+            //   icon: const Icon(Icons.edit_outlined, size: 20),
+            //   onPressed: () {
+            //     // return null;
+            //     Navigator.push(
+            //       context,
+            //       MaterialPageRoute(
+            //         builder: (context) =>
+            //             ChecklistFormScreen(checklistToEdit: checklist),
+            //       ),
+            //     );
+            //   },
+            // ),
           ),
         ],
       ),
@@ -188,7 +188,7 @@ class ChecklistDetailScreen extends StatelessWidget {
                                   ),
                                   const SizedBox(width: 8),
                                   Text(
-                                    'VEHICLE',
+                                    'រថយន្ត',
                                     style: TextStyle(
                                       color: Colors.white.withOpacity(0.8),
                                       fontSize: 11,
@@ -271,8 +271,8 @@ class ChecklistDetailScreen extends StatelessWidget {
                       children: [
                         _buildDateTimeItem(
                           Icons.calendar_today_rounded,
-                          DateFormat('dd MMM yyyy').format(checklist.date),
-                          'Date',
+                          checklist.createdAtFormattedTime,
+                          'Created',
                         ),
                         Container(
                           height: 30,
@@ -858,92 +858,6 @@ class ChecklistDetailScreen extends StatelessWidget {
               ),
             ),
           ),
-
-        // Footer Info Card
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.grey.shade100),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.grey.shade100,
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Column(
-            children: [
-              // Main Footer Row
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: surfaceBlue,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Icon(
-                          Icons.access_time_rounded,
-                          size: 16,
-                          color: primaryBlue,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Created',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Colors.grey.shade500,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          Text(
-                            checklist.createdAt != null
-                                ? DateFormat('dd MMM yyyy, HH:mm')
-                                    .format(checklist.createdAt!)
-                                : 'Unknown',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.grey.shade700,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: darkBlue,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      'ID: ${checklist.id ?? 'N/A'}',
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
       ],
     );
   }

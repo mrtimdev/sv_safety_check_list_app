@@ -1,9 +1,10 @@
 import 'package:intl/intl.dart';
+import 'package:safety_check_list/providers/settings_provider.dart';
 
 class ServiceChecker {
   final int? id;
   final String licensePlate;
-  final String? licensePlateEstimated; // New field for estimated license plate
+  final String? licensePlateEstimated;
   final DateTime date;
   final int totalItems;
   final int itemNoteCount;
@@ -11,6 +12,13 @@ class ServiceChecker {
   final int notCheckedCount;
   final String? imagePath;
   final DateTime? createdAt;
+  final DateTime? updatedAt;
+  final String status;
+  final String? cancelReason;
+  final DateTime? cancelledAt;
+  final UserDTO? createdBy;
+  final UserDTO? updatedBy;
+  final UserDTO? cancelledBy;
   final List<ServiceCheckerItem> items;
 
   ServiceChecker({
@@ -24,19 +32,45 @@ class ServiceChecker {
     required this.notCheckedCount,
     this.imagePath,
     this.createdAt,
+    this.updatedAt,
+    required this.status,
+    this.cancelReason,
+    this.cancelledAt,
+    this.createdBy,
+    this.updatedBy,
+    this.cancelledBy,
     required this.items,
   });
 
-  // Computed properties
-  String get formattedDate => DateFormat('dd MMM yyyy').format(date);
-  String get formattedTime => DateFormat('HH:mm').format(createdAt ?? date);
-  String get createdAtFormattedTime =>
-      DateFormat('dd MMM yyyy, HH:mm').format(createdAt ?? date);
+  String get formattedDate =>
+      DateFormat('dd MMM yyyy', SettingsProvider.currentLocale.languageCode)
+          .format(date);
+
+  String get formattedTime =>
+      DateFormat('hh:mm a', SettingsProvider.currentLocale.languageCode)
+          .format(createdAt ?? date);
+
+  String get createdAtFormattedTime => DateFormat(
+          'dd MMM yyyy, hh:mm a', SettingsProvider.currentLocale.languageCode)
+      .format(createdAt ?? date);
+
+  String get cancelledAtFormattedTime => cancelledAt != null
+      ? DateFormat('dd MMM yyyy, hh:mm a',
+              SettingsProvider.currentLocale.languageCode)
+          .format(cancelledAt!)
+      : '';
 
   double get passRate {
-    if (totalItems == 0) return 0;
-    return (checkedCount / totalItems) * 100;
+    final total = checkedCount + notCheckedCount;
+    if (total == 0) return 0;
+    final rate = (checkedCount / total) * 100;
+    return rate;
   }
+
+  bool get isCancelled => status == 'CANCELLED';
+  bool get isChecked => status == 'CHECKED';
+  bool get isChecking => status == 'CHECKING';
+  bool get isUnchecked => status == 'UNCHECKED';
 
   factory ServiceChecker.fromJson(Map<String, dynamic> json) {
     print("📦 ===== PARSING SERVICE CHECKER =====");
@@ -63,8 +97,7 @@ class ServiceChecker {
     return ServiceChecker(
       id: json['id'],
       licensePlate: json['licensePlate'] ?? 'Unknown',
-      licensePlateEstimated:
-          json['licensePlateEstimated'], // Parse estimated license plate
+      licensePlateEstimated: json['licensePlateEstimated'],
       date:
           json['date'] != null ? DateTime.parse(json['date']) : DateTime.now(),
       totalItems: json['totalItems'] ?? parsedItems.length,
@@ -74,6 +107,22 @@ class ServiceChecker {
       imagePath: json['imagePath'],
       createdAt:
           json['createdAt'] != null ? DateTime.parse(json['createdAt']) : null,
+      updatedAt:
+          json['updatedAt'] != null ? DateTime.parse(json['updatedAt']) : null,
+      status: json['status'] ?? 'CHECKING',
+      cancelReason: json['cancelReason'],
+      cancelledAt: json['cancelledAt'] != null
+          ? DateTime.parse(json['cancelledAt'])
+          : null,
+      createdBy: json['createdBy'] != null
+          ? UserDTO.fromJson(json['createdBy'])
+          : null,
+      updatedBy: json['updatedBy'] != null
+          ? UserDTO.fromJson(json['updatedBy'])
+          : null,
+      cancelledBy: json['cancelledBy'] != null
+          ? UserDTO.fromJson(json['cancelledBy'])
+          : null,
       items: parsedItems,
     );
   }
@@ -82,8 +131,7 @@ class ServiceChecker {
     return {
       'id': id,
       'licensePlate': licensePlate,
-      'licensePlateEstimated':
-          licensePlateEstimated, // Include estimated license plate in JSON
+      'licensePlateEstimated': licensePlateEstimated,
       'date': date.toIso8601String(),
       'totalItems': totalItems,
       'itemNoteCount': itemNoteCount,
@@ -91,9 +139,55 @@ class ServiceChecker {
       'notCheckedCount': notCheckedCount,
       'imagePath': imagePath,
       'createdAt': createdAt?.toIso8601String(),
+      'updatedAt': updatedAt?.toIso8601String(),
+      'status': status,
+      'cancelReason': cancelReason,
+      'cancelledAt': cancelledAt?.toIso8601String(),
+      'createdBy': createdBy?.toJson(),
+      'updatedBy': updatedBy?.toJson(),
+      'cancelledBy': cancelledBy?.toJson(),
       'items': items.map((item) => item.toJson()).toList(),
     };
   }
+}
+
+// New UserDTO class to match backend
+class UserDTO {
+  final int id;
+  final String username;
+  final String? email;
+  final String? fullName;
+  final String? role;
+
+  UserDTO({
+    required this.id,
+    required this.username,
+    this.email,
+    this.fullName,
+    this.role,
+  });
+
+  factory UserDTO.fromJson(Map<String, dynamic> json) {
+    return UserDTO(
+      id: json['id'] ?? 0,
+      username: json['username'] ?? json['name'] ?? '',
+      email: json['email'],
+      fullName: json['fullName'] ?? json['fullname'],
+      role: json['role'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'username': username,
+      'email': email,
+      'fullName': fullName,
+      'role': role,
+    };
+  }
+
+  String get displayName => fullName ?? username;
 }
 
 class ServiceCheckerItem {
@@ -137,6 +231,7 @@ class ServiceCheckerItem {
         passed: note.passed,
         note: note.note,
         categoryId: category.id,
+        categoryName: category.name,
       );
     }).toList();
   }
@@ -230,7 +325,7 @@ class ItemDTO {
   }
 }
 
-// Keep ChecklistItem for backward compatibility and UI
+// Updated ChecklistItem for UI with category name
 class ChecklistItem {
   final int id;
   final String name;
@@ -238,6 +333,7 @@ class ChecklistItem {
   final bool passed;
   final String? note;
   final int? categoryId;
+  final String? categoryName;
 
   ChecklistItem({
     required this.id,
@@ -246,6 +342,7 @@ class ChecklistItem {
     required this.passed,
     this.note,
     this.categoryId,
+    this.categoryName,
   });
 
   factory ChecklistItem.fromJson(Map<String, dynamic> json) {
@@ -256,6 +353,7 @@ class ChecklistItem {
       passed: json['passed'] ?? true,
       note: json['note'],
       categoryId: json['categoryId'],
+      categoryName: json['categoryName'],
     );
   }
 
@@ -267,6 +365,9 @@ class ChecklistItem {
       'passed': passed,
       'note': note,
       'categoryId': categoryId,
+      'categoryName': categoryName,
     };
   }
+
+  String get displayName => khmerName ?? name;
 }

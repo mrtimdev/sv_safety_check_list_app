@@ -3,30 +3,63 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:safety_check_list/models/device_info.dart';
+import 'package:safety_check_list/models/login_request.dart';
 // import 'package:safety_check_list/models/service_checker_request.dart';
 import '../models/category.dart';
 import '../models/service_checker.dart';
 import '../models/inspection.dart';
+import '../services/secure_storage.dart';
 
 class ApiService {
-  static const String homeUrl = 'http://192.168.0.37:8081';
-  static const String baseUrl = 'http://192.168.0.37:8081/api/v1';
+  static const String homeUrl = 'http://45.201.196.19:8084';
+  static const String baseUrl = 'http://45.201.196.19:8084/api/v1';
   // 'http://172.20.10.4:8081/api/v1';
   static const String categoriesEndpoint = '/categories';
   static const String checklistsEndpoint = '/service-checkers';
-  static const String uploadEndpoint =
-      '/service-checkers/upload'; // You need to create this endpoint
+  static const String uploadEndpoint = '/service-checkers/upload';
+
+  // Helper method to get auth headers
+  Future<Map<String, String>> _getAuthHeaders() async {
+    final token = await SecureStorage.getToken();
+    return {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      if (token != null) 'Authorization': 'Bearer $token',
+    };
+  }
+
+  // Helper method to handle response
+  dynamic _handleResponse(http.Response response) {
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      if (response.body.isNotEmpty) {
+        return json.decode(response.body);
+      }
+      return null;
+    } else if (response.statusCode == 401) {
+      throw Exception('Unauthorized: Please login again');
+    } else if (response.statusCode == 403) {
+      throw Exception('Forbidden: You don\'t have permission');
+    } else {
+      try {
+        final error = json.decode(response.body);
+        throw Exception(
+            error['error'] ?? 'Request failed: ${response.statusCode}');
+      } catch (e) {
+        throw Exception('Request failed: ${response.statusCode}');
+      }
+    }
+  }
 
   // Get categories from Spring API
   Future<List<Category>> getCategories() async {
     try {
       print('Fetching categories from: $baseUrl$categoriesEndpoint');
+
+      final headers = await _getAuthHeaders();
+
       final response = await http.get(
         Uri.parse('$baseUrl$categoriesEndpoint'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
+        headers: headers,
       );
 
       print('Categories response status: ${response.statusCode}');
@@ -53,18 +86,26 @@ class ApiService {
         Uri.parse('$baseUrl$uploadEndpoint'),
       );
 
-      // ✅ Add image file (AUTO detect content type)
+      // Add auth token to headers
+      final token = await SecureStorage.getToken();
+      if (token != null) {
+        request.headers.addAll({
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        });
+      } else {
+        request.headers.addAll({
+          'Accept': 'application/json',
+        });
+      }
+
+      // Add image file
       request.files.add(
         await http.MultipartFile.fromPath(
-          'image', // must match @RequestParam("image")
+          'image',
           imageFile.path,
         ),
       );
-
-      // Optional: add headers if needed
-      request.headers.addAll({
-        'Accept': 'application/json',
-      });
 
       // Send request
       var streamedResponse = await request.send();
@@ -75,8 +116,9 @@ class ApiService {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final Map<String, dynamic> data = json.decode(response.body);
-
         return data['imageUrl'] ?? data['path'] ?? data['fileName'] ?? '';
+      } else if (response.statusCode == 401) {
+        throw Exception('Unauthorized: Please login again');
       } else {
         throw Exception(
             'Failed to upload image: ${response.statusCode} - ${response.body}');
@@ -87,7 +129,7 @@ class ApiService {
     }
   }
 
-  // Create new checklist - Matches Spring Boot ServiceCheckerRequest
+  // Create new checklist
   Future<Map<String, dynamic>> createChecklist(
     Map<String, dynamic> data, {
     File? imageFile,
@@ -102,19 +144,17 @@ class ApiService {
       String? imageUrl;
       if (imageFile != null) {
         imageUrl = await uploadImage(imageFile);
-        // Add image URL to data if your API accepts it in JSON
         data['imagePath'] = imageUrl;
       }
 
       // Add device info to data
       data['deviceInfo'] = deviceInfo.toJson();
 
+      final headers = await _getAuthHeaders();
+
       final response = await http.post(
         Uri.parse('$baseUrl$checklistsEndpoint'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
+        headers: headers,
         body: json.encode(data),
       );
 
@@ -124,10 +164,11 @@ class ApiService {
       if (response.statusCode == 201 || response.statusCode == 200) {
         return json.decode(response.body);
       } else if (response.statusCode == 409) {
-        // Conflict - checklist already exists
         final error = json.decode(response.body);
         throw Exception(error['error'] ??
             'Checklist already exists for this driver on this date');
+      } else if (response.statusCode == 401) {
+        throw Exception('Unauthorized: Please login again');
       } else {
         throw Exception(
             'Failed to create checklist: ${response.statusCode} - ${response.body}');
@@ -138,7 +179,7 @@ class ApiService {
     }
   }
 
-  // Alternative: Create checklist with multipart request (if API accepts form data)
+  // Alternative: Create checklist with multipart request
   Future<Map<String, dynamic>> createChecklistWithImage(
     Map<String, dynamic> jsonData,
     File imageFile,
@@ -148,8 +189,16 @@ class ApiService {
 
       var request = http.MultipartRequest(
         'POST',
-        Uri.parse('$baseUrl$checklistsEndpoint/with-image'), // New endpoint
+        Uri.parse('$baseUrl$checklistsEndpoint/with-image'),
       );
+
+      // Add auth token to headers
+      final token = await SecureStorage.getToken();
+      if (token != null) {
+        request.headers.addAll({
+          'Authorization': 'Bearer $token',
+        });
+      }
 
       // Add JSON data as a field
       request.fields['data'] = json.encode(jsonData);
@@ -172,6 +221,8 @@ class ApiService {
 
       if (response.statusCode == 201 || response.statusCode == 200) {
         return json.decode(response.body);
+      } else if (response.statusCode == 401) {
+        throw Exception('Unauthorized: Please login again');
       } else {
         throw Exception('Failed to create checklist: ${response.statusCode}');
       }
@@ -200,12 +251,11 @@ class ApiService {
       // Add device info to data
       data['deviceInfo'] = deviceInfo.toJson();
 
+      final headers = await _getAuthHeaders();
+
       final response = await http.put(
         Uri.parse('$baseUrl$checklistsEndpoint/$id'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
+        headers: headers,
         body: json.encode(data),
       );
 
@@ -216,6 +266,8 @@ class ApiService {
         return json.decode(response.body);
       } else if (response.statusCode == 404) {
         throw Exception('Checklist not found');
+      } else if (response.statusCode == 401) {
+        throw Exception('Unauthorized: Please login again');
       } else {
         throw Exception(
             'Failed to update checklist: ${response.statusCode} - ${response.body}');
@@ -244,12 +296,11 @@ class ApiService {
 
       print('Fetching checklists from: $url');
 
+      final headers = await _getAuthHeaders();
+
       final response = await http.get(
         Uri.parse(url),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
+        headers: headers,
       );
 
       print('Get checklists response status: ${response.statusCode}');
@@ -258,6 +309,8 @@ class ApiService {
         final Map<String, dynamic> data = json.decode(response.body);
         print("📦 Received checklists response: $data");
         return data;
+      } else if (response.statusCode == 401) {
+        throw Exception('Unauthorized: Please login again');
       } else {
         throw Exception('Failed to load checklists: ${response.statusCode}');
       }
@@ -272,12 +325,11 @@ class ApiService {
     try {
       print('Fetching checklist $id from: $baseUrl$checklistsEndpoint/$id');
 
+      final headers = await _getAuthHeaders();
+
       final response = await http.get(
         Uri.parse('$baseUrl$checklistsEndpoint/$id'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
+        headers: headers,
       );
 
       print('Get checklist response status: ${response.statusCode}');
@@ -287,6 +339,8 @@ class ApiService {
         return ServiceChecker.fromJson(data);
       } else if (response.statusCode == 404) {
         throw Exception('Checklist not found');
+      } else if (response.statusCode == 401) {
+        throw Exception('Unauthorized: Please login again');
       } else {
         throw Exception('Failed to load checklist: ${response.statusCode}');
       }
@@ -301,17 +355,18 @@ class ApiService {
     try {
       print('Deleting checklist $id');
 
+      final headers = await _getAuthHeaders();
+
       final response = await http.delete(
         Uri.parse('$baseUrl$checklistsEndpoint/$id'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
+        headers: headers,
       );
 
       print('Delete checklist response status: ${response.statusCode}');
 
-      if (response.statusCode != 200 && response.statusCode != 204) {
+      if (response.statusCode == 401) {
+        throw Exception('Unauthorized: Please login again');
+      } else if (response.statusCode != 200 && response.statusCode != 204) {
         throw Exception('Failed to delete checklist: ${response.statusCode}');
       }
     } catch (e) {
@@ -320,8 +375,7 @@ class ApiService {
     }
   }
 
-  // In lib/services/api_service.dart
-
+  // Parse checklists from response
   List<ServiceChecker> parseChecklistsFromResponse(
       Map<String, dynamic> response) {
     try {
@@ -331,8 +385,6 @@ class ApiService {
       return data.map((json) {
         print(
             "📄 Parsing checklist item: ${json['id']} - ${json['licensePlate']}");
-
-        // Parse the service checker using the new model
         return ServiceChecker.fromJson(json);
       }).toList();
     } catch (e) {
@@ -347,5 +399,108 @@ class ApiService {
       return imagePath;
     }
     return '$baseUrl$imagePath';
+  }
+
+  // Cancel checklist
+  Future<void> cancelChecklist(int id, String reason) async {
+    try {
+      final headers = await _getAuthHeaders();
+
+      final response = await http.put(
+        Uri.parse(
+            '$baseUrl$checklistsEndpoint/$id/cancel?reason=${Uri.encodeComponent(reason)}'),
+        headers: headers,
+      );
+
+      if (response.statusCode == 401) {
+        throw Exception('Unauthorized: Please login again');
+      } else if (response.statusCode != 200) {
+        final error = json.decode(response.body);
+        throw Exception(error['error'] ?? 'Failed to cancel checklist');
+      }
+    } catch (e) {
+      throw Exception('Error cancelling checklist: $e');
+    }
+  }
+
+  // Login method
+  Future<LoginResponse> login(String identifier, String password) async {
+    try {
+      final request = LoginRequest(
+        identifier: identifier,
+        password: password,
+      );
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/login'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: json.encode(request.toJson()),
+      );
+
+      print('📤 Login request: ${request.toJson()}');
+      print('📥 Login response status: ${response.statusCode}');
+      print('📥 Login response body: ${response.body}');
+
+      final Map<String, dynamic> responseData = json.decode(response.body);
+
+      return LoginResponse.fromJson(responseData);
+    } on SocketException {
+      throw Exception('No internet connection. Please check your network.');
+    } on HttpException {
+      throw Exception('Server error. Please try again later.');
+    } on FormatException {
+      throw Exception('Invalid response format from server.');
+    } catch (e) {
+      throw Exception('Login failed: $e');
+    }
+  }
+
+  // Get current user info
+  Future<Map<String, dynamic>> getCurrentUser(String token) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/auth/me'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else if (response.statusCode == 401) {
+        throw Exception('Unauthorized: Please login again');
+      } else {
+        throw Exception('Failed to get user info');
+      }
+    } catch (e) {
+      throw Exception('Error getting user info: $e');
+    }
+  }
+
+  // Logout method
+  Future<void> logout(String token) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/logout'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 401) {
+        throw Exception('Unauthorized: Please login again');
+      } else if (response.statusCode != 200) {
+        throw Exception('Logout failed');
+      }
+    } catch (e) {
+      throw Exception('Error logging out: $e');
+    }
   }
 }
