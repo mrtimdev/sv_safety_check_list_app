@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
@@ -13,7 +14,7 @@ import '../services/secure_storage.dart';
 class ApiService {
   static const String homeUrl = 'http://45.201.196.19:8084';
   static const String baseUrl = 'http://45.201.196.19:8084/api/v1';
-  // 'http://172.20.10.4:8081/api/v1';
+  // 'http://45.201.196.19:8084/api/v1';
   static const String categoriesEndpoint = '/categories';
   static const String checklistsEndpoint = '/service-checkers';
   static const String uploadEndpoint = '/service-checkers/upload';
@@ -502,5 +503,102 @@ class ApiService {
     } catch (e) {
       throw Exception('Error logging out: $e');
     }
+  }
+
+  Future<Map<String, dynamic>> detectPlateWithoutToken(File imageFile) async {
+    var request =
+        http.MultipartRequest('POST', Uri.parse('http://0.0.0.0:8000/detect'));
+
+    // Add image file
+    request.files.add(await http.MultipartFile.fromPath(
+      'file',
+      imageFile.path,
+      contentType: MediaType('image', 'jpeg'),
+    ));
+
+    // Send request
+    var streamedResponse = await request.send();
+    var response = await http.Response.fromStream(streamedResponse);
+
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    } else {
+      throw Exception('Failed to detect plate: ${response.body}');
+    }
+  }
+
+  Future<void> downloadAnnotatedImage(String url, String savePath) async {
+    var response = await http.get(Uri.parse('$baseUrl$url'));
+
+    if (response.statusCode == 200) {
+      File imageFile = File(savePath);
+      await imageFile.writeAsBytes(response.bodyBytes);
+    } else {
+      throw Exception('Failed to download image');
+    }
+  }
+
+  Future<String?> detectPlate(File imageFile) async {
+    try {
+      final String apiUrl = 'http://45.201.196.19:8084/api/v1/plates/detect';
+
+      final headers = await _getAuthHeaders();
+
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse(apiUrl),
+      );
+
+      // FIXED FIELD NAME
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'image', // must match Spring @RequestParam("image")
+          imageFile.path,
+          contentType: MediaType('image', 'jpeg'),
+        ),
+      );
+
+      // FIXED HEADER
+      request.headers.addAll(headers);
+      request.headers['Accept'] = 'application/json';
+
+      var streamedResponse =
+          await request.send().timeout(const Duration(seconds: 30));
+
+      var resBody = await streamedResponse.stream.bytesToString();
+      var jsonData = jsonDecode(resBody);
+
+      print('📡 API Response: $jsonData');
+
+      if (streamedResponse.statusCode == 200 && jsonData['success'] == true) {
+        if (jsonData['results'] != null && jsonData['results'].isNotEmpty) {
+          for (var result in jsonData['results']) {
+            if (result['plate_text'] != null &&
+                result['plate_text'].toString().isNotEmpty) {
+              return cleanPlateText(
+                  result['display_text'] ?? result['plate_text']);
+            }
+          }
+        }
+
+        if (jsonData['plates_detected'] > 0 && jsonData['plates_read'] == 0) {
+          return null;
+        }
+      }
+
+      return null;
+    } catch (e) {
+      if (e is SocketException) {
+        throw Exception('មិនអាចភ្ជាប់ទៅម៉ាស៊ីនមេបានទេ។');
+      } else if (e is TimeoutException) {
+        throw Exception('ការតភ្ជាប់ផុតកំណត់។');
+      } else {
+        throw Exception('កំហុសក្នុងការតភ្ជាប់: $e');
+      }
+    }
+  }
+
+  String cleanPlateText(String text) {
+    return text.replaceAll('-', '').replaceAll('.', '');
   }
 }

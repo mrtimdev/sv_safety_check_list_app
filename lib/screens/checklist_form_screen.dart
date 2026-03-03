@@ -48,12 +48,15 @@ class _ChecklistFormScreenState extends State<ChecklistFormScreen> {
   // Track which items need note validation
   final Map<int, bool> _noteValidationErrors = {};
 
+  late TextEditingController _licensePlateController;
+
   @override
   void initState() {
     super.initState();
     _loadDeviceInfo();
     _loadCategories();
 
+    _licensePlateController = TextEditingController();
     // If editing existing checklist
     if (widget.checklistToEdit != null) {
       _editingId = widget.checklistToEdit!.id;
@@ -62,6 +65,8 @@ class _ChecklistFormScreenState extends State<ChecklistFormScreen> {
           widget.checklistToEdit!.licensePlateEstimated ?? '';
       _imagePath = widget.checklistToEdit!.imagePath;
       _selectedDate = widget.checklistToEdit!.date;
+
+      _licensePlateController.text = _licensePlate;
     }
   }
 
@@ -203,11 +208,30 @@ class _ChecklistFormScreenState extends State<ChecklistFormScreen> {
           licensePlateEstimated: _licensePlateEstimated,
           imagePath: _imagePath ?? '',
           onPlateScanned: (plate, estimated, imagePath) {
+            print("plate, estimated $plate, $estimated");
             setState(() {
-              _licensePlate = plate;
-              _licensePlateEstimated = estimated ?? '';
+              if (plate.isNotEmpty) {
+                _licensePlate =
+                    plate.toUpperCase().replaceAll('-', '').replaceAll(' ', '');
+              }
+              // If no cleaned plate but estimated exists, use estimated
+              else if (estimated!.isNotEmpty) {
+                _licensePlate = estimated!
+                    .toUpperCase()
+                    .replaceAll('-', '')
+                    .replaceAll(' ', '');
+              }
+
+              // Always store the raw estimated text for display
+              _licensePlateEstimated =
+                  estimated!.isNotEmpty ? estimated!.toUpperCase() : '';
+
+              _licensePlateController.text = _licensePlate;
               _imagePath = imagePath;
             });
+
+            print('📝 License plate set to: $_licensePlate');
+            print('📝 Estimated text: $_licensePlateEstimated');
           },
         ),
       ),
@@ -761,7 +785,7 @@ class _ChecklistFormScreenState extends State<ChecklistFormScreen> {
               // Expanded TextField
               Expanded(
                 child: TextFormField(
-                  initialValue: _licensePlate,
+                  controller: _licensePlateController,
                   decoration: InputDecoration(
                     hintText: 'KH-1234',
                     hintStyle: TextStyle(color: Colors.grey[400]),
@@ -842,75 +866,75 @@ class _ChecklistFormScreenState extends State<ChecklistFormScreen> {
             ],
           ),
 
-          // Estimated Plate Display with View Button (when available)
-          if (_licensePlateEstimated.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: _showEstimatedPlateDialog,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.blue.shade50,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.blue.shade200),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.camera_alt,
-                              size: 18, color: Colors.blue.shade700),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: LayoutBuilder(
-                              builder: (context, constraints) {
-                                return Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Scanned Plate',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        color: Colors.blue.shade700,
-                                        fontWeight: FontWeight.w600,
-                                        letterSpacing: 0.3,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        _removeAllWhitespace(
-                                            _licensePlateEstimated),
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          color: Colors.blue.shade900,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                  ],
-                                );
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          Icon(
-                            Icons.chevron_right,
-                            size: 18,
-                            color: Colors.blue.shade400,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
+          // // Estimated Plate Display with View Button (when available)
+          // if (_licensePlateEstimated.isNotEmpty) ...[
+          //   const SizedBox(height: 12),
+          //   Row(
+          //     children: [
+          //       Expanded(
+          //         child: GestureDetector(
+          //           onTap: _showEstimatedPlateDialog,
+          //           child: Container(
+          //             padding: const EdgeInsets.symmetric(
+          //                 horizontal: 12, vertical: 8),
+          //             decoration: BoxDecoration(
+          //               color: Colors.blue.shade50,
+          //               borderRadius: BorderRadius.circular(12),
+          //               border: Border.all(color: Colors.blue.shade200),
+          //             ),
+          //             child: Row(
+          //               children: [
+          //                 Icon(Icons.camera_alt,
+          //                     size: 18, color: Colors.blue.shade700),
+          //                 const SizedBox(width: 10),
+          //                 Expanded(
+          //                   child: LayoutBuilder(
+          //                     builder: (context, constraints) {
+          //                       return Row(
+          //                         crossAxisAlignment: CrossAxisAlignment.start,
+          //                         children: [
+          //                           Text(
+          //                             'Scanned Plate',
+          //                             style: TextStyle(
+          //                               fontSize: 11,
+          //                               color: Colors.blue.shade700,
+          //                               fontWeight: FontWeight.w600,
+          //                               letterSpacing: 0.3,
+          //                             ),
+          //                           ),
+          //                           const SizedBox(width: 8),
+          //                           Expanded(
+          //                             child: Text(
+          //                               _removeAllWhitespace(
+          //                                   _licensePlateEstimated),
+          //                               style: TextStyle(
+          //                                 fontSize: 11,
+          //                                 color: Colors.blue.shade900,
+          //                                 fontWeight: FontWeight.bold,
+          //                               ),
+          //                               maxLines: 1,
+          //                               overflow: TextOverflow.ellipsis,
+          //                             ),
+          //                           ),
+          //                         ],
+          //                       );
+          //                     },
+          //                   ),
+          //                 ),
+          //                 const SizedBox(width: 4),
+          //                 Icon(
+          //                   Icons.chevron_right,
+          //                   size: 18,
+          //                   color: Colors.blue.shade400,
+          //                 ),
+          //               ],
+          //             ),
+          //           ),
+          //         ),
+          //       ),
+          //     ],
+          //   ),
+          // ],
 
           // Image Preview Section
           if (_imagePath != null) ...[

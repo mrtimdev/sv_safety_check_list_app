@@ -7,8 +7,10 @@ import 'package:flutter/material.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:safety_check_list/services/api_service.dart';
 import '../widgets/loading_indicator.dart';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 
 class LicensePlateScannerScreen extends StatefulWidget {
   final Function(
@@ -33,6 +35,8 @@ class _LicensePlateScannerScreenState extends State<LicensePlateScannerScreen> {
   String? _extractedText;
   String? _extractedTextEstimated;
   bool _isProcessing = false;
+
+  final ApiService _apiService = ApiService();
 
   static const Color primaryColor = Color(0xFF1E3A8A);
 
@@ -264,8 +268,8 @@ class _LicensePlateScannerScreenState extends State<LicensePlateScannerScreen> {
 
                           if (savedPath != null && mounted) {
                             widget.onPlateScanned(
-                              _extractedText ?? '',
-                              _extractedTextEstimated,
+                              _extractedText!,
+                              _extractedText!,
                               savedPath,
                             );
                             Navigator.pop(context);
@@ -360,7 +364,7 @@ class _LicensePlateScannerScreenState extends State<LicensePlateScannerScreen> {
 
                                 widget.onPlateScanned(
                                   _extractedText!,
-                                  _extractedText,
+                                  _extractedText!,
                                   savedPath ?? '',
                                 );
                                 Navigator.pop(context);
@@ -431,75 +435,38 @@ class _LicensePlateScannerScreenState extends State<LicensePlateScannerScreen> {
     setState(() => _isProcessing = true);
 
     try {
-      final InputImage inputImage = InputImage.fromFilePath(imageFile.path);
-      final textRecognizer =
-          TextRecognizer(script: TextRecognitionScript.latin);
-      final RecognizedText recognizedText =
-          await textRecognizer.processImage(inputImage);
-      await textRecognizer.close();
+      // Use the FastAPI endpoint for license plate detection
+      final String? plateNumber =
+          await _apiService.detectPlate(File(imageFile.path));
 
       if (!mounted) return;
 
-      final image =
-          await decodeImageFromList(File(imageFile.path).readAsBytesSync());
-      final double imageWidth = image.width.toDouble();
-      final double imageHeight = image.height.toDouble();
+      if (plateNumber != null) {
+        setState(() {
+          _isProcessing = false;
+          _extractedText = plateNumber;
+          _extractedTextEstimated =
+              null; // Optional: You could store the raw OCR here if API returns it
+        });
 
-      final Rect targetRegion = Rect.fromLTWH(
-        0.0,
-        0.0,
-        imageWidth,
-        imageHeight,
-      );
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('បានរកឃើញផ្លាកលេខ: $plateNumber'),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      } else {
+        setState(() {
+          _isProcessing = false;
+          _extractedText = 'រកមិនឃើញផ្លាកលេខរថយន្តទេ';
+          _extractedTextEstimated = null;
+        });
 
-      StringBuffer filteredTextBuffer = StringBuffer();
-
-      for (TextBlock block in recognizedText.blocks) {
-        if (targetRegion.overlaps(block.boundingBox)) {
-          for (TextLine line in block.lines) {
-            if (targetRegion.overlaps(line.boundingBox)) {
-              filteredTextBuffer.writeln(line.text);
-            }
-          }
-        }
-      }
-
-      final String scannedTextInRegion = filteredTextBuffer.toString().trim();
-      debugPrint("Scanned text in region: \n$scannedTextInRegion");
-
-      setState(() {
-        _extractedTextEstimated = scannedTextInRegion;
-      });
-
-      String? plateNumber;
-      List<String> lines = scannedTextInRegion.split('\n');
-
-      for (String line in lines) {
-        String text = line.replaceAll(RegExp(r'[^A-Z0-9]'), '').toUpperCase();
-
-        if (text.length >= 4 && text.length <= 8) {
-          if (RegExp(r'^[A-Z]{2,4}[0-9]{2,4}$').hasMatch(text) ||
-              RegExp(r'^[0-9]{2,4}[A-Z]{2,4}$').hasMatch(text)) {
-            plateNumber = text;
-            break;
-          }
-        }
-
-        if (line.contains('-')) {
-          String possiblePlate = line.replaceAll(' ', '').toUpperCase();
-          if (RegExp(r'^[A-Z]{2,3}-\d{3,4}$').hasMatch(possiblePlate)) {
-            plateNumber = possiblePlate;
-            break;
-          }
-        }
-      }
-
-      setState(() {
-        _isProcessing = false;
-        _extractedText = plateNumber ?? 'រកមិនឃើញផ្លាកលេខរថយន្តទេ';
-      });
-
-      if (plateNumber == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text(
@@ -515,13 +482,13 @@ class _LicensePlateScannerScreenState extends State<LicensePlateScannerScreen> {
     } catch (e) {
       setState(() {
         _isProcessing = false;
-        _extractedText = 'Error scanning image';
+        _extractedText = 'កំហុសក្នុងការស្កេន';
         _extractedTextEstimated = null;
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error scanning: ${e.toString()}'),
+          content: Text('កំហុស: ${e.toString()}'),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
@@ -538,27 +505,5 @@ class _LicensePlateScannerScreenState extends State<LicensePlateScannerScreen> {
       return completer.complete(img);
     });
     return completer.future;
-  }
-
-  Future<String?> detectPlate(File imageFile) async {
-    var request = http.MultipartRequest(
-      'POST',
-      Uri.parse('http://0.0.0.0:8000/detect '),
-    );
-
-    request.files.add(
-      await http.MultipartFile.fromPath('file', imageFile.path),
-    );
-
-    var response = await request.send();
-    var resBody = await response.stream.bytesToString();
-
-    var jsonData = jsonDecode(resBody);
-
-    if (jsonData['plates'].length > 0) {
-      return jsonData['plates'][0];
-    }
-
-    return null;
   }
 }
