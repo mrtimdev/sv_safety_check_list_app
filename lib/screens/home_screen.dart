@@ -2008,6 +2008,9 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Dialog(
           backgroundColor: Colors.transparent,
           elevation: 0,
+          insetPadding: const EdgeInsets.symmetric(
+              horizontal: 24,
+              vertical: 24), // Add padding to ensure space around dialog
           child: StatefulBuilder(
             builder: (context, setState) {
               return Container(
@@ -2027,9 +2030,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Header with gradient
+                    // Header with gradient - Fixed header (non-scrollable)
                     Container(
-                      padding: const EdgeInsets.all(20),
+                      padding: const EdgeInsets.all(15),
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           begin: Alignment.topLeft,
@@ -2055,7 +2058,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             child: const Icon(
                               Icons.cancel_outlined,
                               color: Colors.white,
-                              size: 28,
+                              size: 18,
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -2063,7 +2066,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             'បោះបង់ការត្រួតពិនិត្យមួយនេះ?',
                             style: TextStyle(
                               color: Colors.white,
-                              fontSize: 20,
+                              fontSize: 18,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -2071,232 +2074,238 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
 
-                    // Content
-                    Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Warning message
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.orange.shade50,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: Colors.orange.shade200,
+                    // Scrollable content
+                    Flexible(
+                      // Use Flexible instead of Expanded to allow content to shrink
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Warning message
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.orange.shade50,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: Colors.orange.shade200,
+                                ),
                               ),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.warning_amber_rounded,
-                                  color: Colors.orange.shade700,
-                                  size: 24,
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Text(
-                                    'សកម្មភាពនេះមិនអាចត្រឡប់ក្រោយបានទេ។ សូមបញ្ជាក់មូលហេតុនៃការលុបចោល។',
-                                    style: TextStyle(
-                                      color: Colors.orange.shade800,
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 14,
-                                    ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.warning_amber_rounded,
+                                    color: Colors.orange.shade700,
+                                    size: 24,
                                   ),
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          const SizedBox(height: 20),
-
-                          // License plate info
-                          Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade50,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: Colors.grey.shade200,
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: primaryBlue.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: Icon(
-                                    Icons.local_taxi,
-                                    color: primaryBlue,
-                                    size: 20,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text(
-                                      'ផ្លាកលេខរថយន្ត',
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      'សកម្មភាពនេះមិនអាចត្រឡប់ក្រោយបានទេ។ សូមបញ្ជាក់មូលហេតុនៃការលុបចោល។',
                                       style: TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.grey,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      checklist.licensePlate,
-                                      style: const TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                        color: darkBlue,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          const SizedBox(height: 20),
-
-                          // Reason field with cool design
-                          Text(
-                            'មូលហេតុនៃការលុបចោល',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.grey.shade700,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Container(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: isReasonValid
-                                    ? Colors.grey.shade300
-                                    : Colors.red.shade400,
-                                width: isReasonValid ? 1 : 2,
-                              ),
-                            ),
-                            child: TextField(
-                              controller: reasonController,
-                              maxLines: 4,
-                              style: const TextStyle(fontSize: 14),
-                              decoration: InputDecoration(
-                                hintText: 'សូមផ្តល់មូលហេតុនៃការលុបចោល...',
-                                hintStyle: TextStyle(
-                                  color: Colors.grey.shade400,
-                                  fontSize: 14,
-                                ),
-                                border: InputBorder.none,
-                                contentPadding: const EdgeInsets.all(16),
-                                suffixIcon: isReasonValid
-                                    ? null
-                                    : Icon(
-                                        Icons.error_outline,
-                                        color: Colors.red.shade400,
-                                        size: 20,
-                                      ),
-                              ),
-                              onChanged: (value) {
-                                setState(() {
-                                  isReasonValid = true;
-                                });
-                              },
-                            ),
-                          ),
-
-                          if (!isReasonValid) ...[
-                            const SizedBox(height: 8),
-                            Text(
-                              'Reason is required',
-                              style: TextStyle(
-                                color: Colors.red.shade600,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-
-                          const SizedBox(height: 24),
-
-                          // Action buttons
-                          Row(
-                            children: [
-                              Expanded(
-                                child: TextButton(
-                                  onPressed: () =>
-                                      Navigator.pop(context, false),
-                                  style: TextButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 14),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(14),
-                                      side: BorderSide(
-                                        color: Colors.grey.shade300,
+                                        color: Colors.orange.shade800,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 14,
                                       ),
                                     ),
                                   ),
-                                  child: Text(
-                                    'Back',
-                                    style: TextStyle(
-                                      color: Colors.grey.shade700,
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 15,
-                                    ),
-                                  ),
+                                ],
+                              ),
+                            ),
+
+                            const SizedBox(height: 20),
+
+                            // License plate info
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade50,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: Colors.grey.shade200,
                                 ),
                               ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: ElevatedButton(
-                                  onPressed: () {
-                                    if (reasonController.text.trim().isEmpty) {
-                                      setState(() {
-                                        isReasonValid = false;
-                                      });
-                                      return;
-                                    }
-                                    _cancelChecklist(checklist.id!,
-                                        reasonController.text.trim());
-                                    Navigator.pop(context, true);
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.orange.shade700,
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 14),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(14),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: primaryBlue.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(10),
                                     ),
-                                    elevation: 0,
+                                    child: Icon(
+                                      Icons.local_taxi,
+                                      color: primaryBlue,
+                                      size: 20,
+                                    ),
                                   ),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
+                                  const SizedBox(width: 12),
+                                  Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      const Icon(Icons.cancel_outlined,
-                                          size: 18),
-                                      const SizedBox(width: 8),
                                       const Text(
-                                        'Confirm Cancel',
+                                        'ផ្លាកលេខរថយន្ត',
                                         style: TextStyle(
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.w600,
+                                          fontSize: 12,
+                                          color: Colors.grey,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        checklist.licensePlate,
+                                        style: const TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: darkBlue,
                                         ),
                                       ),
                                     ],
                                   ),
+                                ],
+                              ),
+                            ),
+
+                            const SizedBox(height: 20),
+
+                            // Reason field with cool design
+                            Text(
+                              'មូលហេតុនៃការលុបចោល',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.grey.shade700,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Container(
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: isReasonValid
+                                      ? Colors.grey.shade300
+                                      : Colors.red.shade400,
+                                  width: isReasonValid ? 1 : 2,
+                                ),
+                              ),
+                              child: TextField(
+                                controller: reasonController,
+                                maxLines: 4,
+                                minLines:
+                                    3, // Add minLines to ensure consistent size
+                                style: const TextStyle(fontSize: 14),
+                                decoration: InputDecoration(
+                                  hintText: 'សូមផ្តល់មូលហេតុនៃការលុបចោល...',
+                                  hintStyle: TextStyle(
+                                    color: Colors.grey.shade400,
+                                    fontSize: 14,
+                                  ),
+                                  border: InputBorder.none,
+                                  contentPadding: const EdgeInsets.all(16),
+                                  suffixIcon: isReasonValid
+                                      ? null
+                                      : Icon(
+                                          Icons.error_outline,
+                                          color: Colors.red.shade400,
+                                          size: 20,
+                                        ),
+                                ),
+                                onChanged: (value) {
+                                  setState(() {
+                                    isReasonValid = true;
+                                  });
+                                },
+                              ),
+                            ),
+
+                            if (!isReasonValid) ...[
+                              const SizedBox(height: 8),
+                              Text(
+                                'Reason is required',
+                                style: TextStyle(
+                                  color: Colors.red.shade600,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
                             ],
-                          ),
-                        ],
+
+                            const SizedBox(height: 24),
+
+                            // Action buttons
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: TextButton(
+                                    onPressed: () =>
+                                        Navigator.pop(context, false),
+                                    style: TextButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(
+                                          vertical: 14),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(14),
+                                        side: BorderSide(
+                                          color: Colors.grey.shade300,
+                                        ),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      'Back',
+                                      style: TextStyle(
+                                        color: Colors.grey.shade700,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 15,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: ElevatedButton(
+                                    onPressed: () {
+                                      if (reasonController.text
+                                          .trim()
+                                          .isEmpty) {
+                                        setState(() {
+                                          isReasonValid = false;
+                                        });
+                                        return;
+                                      }
+                                      _cancelChecklist(checklist.id!,
+                                          reasonController.text.trim());
+                                      Navigator.pop(context, true);
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.orange.shade700,
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(
+                                          vertical: 14),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(14),
+                                      ),
+                                      elevation: 0,
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        const Text(
+                                          'Confirm',
+                                          style: TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ],
