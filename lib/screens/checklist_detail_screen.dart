@@ -2,9 +2,11 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:safety_check_list/l10n/app_localizations.dart';
 import 'package:safety_check_list/models/service_checker.dart';
 import 'package:safety_check_list/screens/checklist_form_screen.dart';
 import 'package:safety_check_list/services/api_service.dart';
+import 'package:safety_check_list/widgets/gradient_app_bar.dart';
 
 class ChecklistDetailScreen extends StatelessWidget {
   final ServiceChecker checklist;
@@ -22,44 +24,34 @@ class ChecklistDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    print("checklist details: ${checklist.toJson()}");
+    final t = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
-      appBar: AppBar(
-        title: const Text(
-          'Safety Checklist Details',
-          style: TextStyle(
-            fontWeight: FontWeight.w700,
-            fontSize: 18,
-            letterSpacing: 0.5,
-          ),
-        ),
-        centerTitle: true,
-        backgroundColor: Colors.white,
-        foregroundColor: darkBlue,
-        elevation: 0,
-        actions: [
-          Container(
-            margin: const EdgeInsets.only(right: 8),
-            decoration: BoxDecoration(
-              color: lightBlue,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            // child: IconButton(
-            //   icon: const Icon(Icons.edit_outlined, size: 20),
-            //   onPressed: () {
-            //     // return null;
-            //     Navigator.push(
-            //       context,
-            //       MaterialPageRoute(
-            //         builder: (context) =>
-            //             ChecklistFormScreen(checklistToEdit: checklist),
-            //       ),
-            //     );
-            //   },
-            // ),
-          ),
-        ],
+      appBar: GradientAppBar(
+        title: t.safetyChecklistDetails,
+        showLoading: false,
+        // actions: [
+        //   Container(
+        //     margin: const EdgeInsets.only(right: 8),
+        //     decoration: BoxDecoration(
+        //       color: lightBlue,
+        //       borderRadius: BorderRadius.circular(12),
+        //     ),
+        //     child: IconButton(
+        //       icon: const Icon(Icons.edit_outlined, size: 20),
+        //       onPressed: () {
+        //         // return null;
+        //         Navigator.push(
+        //           context,
+        //           MaterialPageRoute(
+        //             builder: (context) =>
+        //                 ChecklistFormScreen(checklistToEdit: checklist),
+        //           ),
+        //         );
+        //       },
+        //     ),
+        //   ),
+        // ],
       ),
       body: CustomScrollView(
         slivers: [

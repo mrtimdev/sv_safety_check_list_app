@@ -226,6 +226,150 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Please check your OT request and try again.'**
   String get checkOtRequest;
+
+  /// No description provided for @about.
+  ///
+  /// In en, this message translates to:
+  /// **'About'**
+  String get about;
+
+  /// No description provided for @appName.
+  ///
+  /// In en, this message translates to:
+  /// **'Safety Checklists'**
+  String get appName;
+
+  /// No description provided for @version.
+  ///
+  /// In en, this message translates to:
+  /// **'Version {version}'**
+  String version(Object version);
+
+  /// No description provided for @appDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'A comprehensive vehicle inspection system for safety compliance and monitoring.'**
+  String get appDescription;
+
+  /// No description provided for @close.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get close;
+
+  /// No description provided for @safetyChecklists.
+  ///
+  /// In en, this message translates to:
+  /// **'Safety Checklists'**
+  String get safetyChecklists;
+
+  /// No description provided for @totalChecks.
+  ///
+  /// In en, this message translates to:
+  /// **'Total Checks'**
+  String get totalChecks;
+
+  /// No description provided for @thisWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'This Week'**
+  String get thisWeek;
+
+  /// No description provided for @avgPassRate.
+  ///
+  /// In en, this message translates to:
+  /// **'Avg Pass Rate'**
+  String get avgPassRate;
+
+  /// No description provided for @allTime.
+  ///
+  /// In en, this message translates to:
+  /// **'All Time'**
+  String get allTime;
+
+  /// No description provided for @today.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get today;
+
+  /// No description provided for @yesterday.
+  ///
+  /// In en, this message translates to:
+  /// **'Yesterday'**
+  String get yesterday;
+
+  /// No description provided for @last7Days.
+  ///
+  /// In en, this message translates to:
+  /// **'Last 7 Days'**
+  String get last7Days;
+
+  /// No description provided for @last30Days.
+  ///
+  /// In en, this message translates to:
+  /// **'Last 30 Days'**
+  String get last30Days;
+
+  /// No description provided for @filterChecklists.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter Checklists'**
+  String get filterChecklists;
+
+  /// No description provided for @selectTimePeriod.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a time period to filter your inspections'**
+  String get selectTimePeriod;
+
+  /// No description provided for @dashboardOverview.
+  ///
+  /// In en, this message translates to:
+  /// **'Dashboard Overview'**
+  String get dashboardOverview;
+
+  /// No description provided for @confirmExit.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to exit the system?'**
+  String get confirmExit;
+
+  /// No description provided for @no.
+  ///
+  /// In en, this message translates to:
+  /// **'No'**
+  String get no;
+
+  /// No description provided for @okay.
+  ///
+  /// In en, this message translates to:
+  /// **'Okay'**
+  String get okay;
+
+  /// No description provided for @editSafetyCheck.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Safety Check'**
+  String get editSafetyCheck;
+
+  /// No description provided for @newSafetyCheck.
+  ///
+  /// In en, this message translates to:
+  /// **'New Safety Check'**
+  String get newSafetyCheck;
+
+  /// No description provided for @safetyChecklistDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Safety Checklist Details'**
+  String get safetyChecklistDetails;
+
+  /// No description provided for @scanPlateNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan Vehicle Plate Number'**
+  String get scanPlateNumber;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

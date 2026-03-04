@@ -1,11 +1,9 @@
 {
   "@@locale": "en",
-
   "appTitle": "Safety Check Lists",
   "@appTitle": {
     "description": "Application title"
   },
-
   "login": "Login",
   "logout": "Logout",
   "home": "Home",
@@ -13,22 +11,42 @@
   "language": "Language",
   "english": "English",
   "khmer": "Khmer",
-
   "checkIn": "Check In",
   "checkOut": "Check Out",
   "cancel": "Cancel",
   "submit": "Submit",
   "save": "Save",
-
   "date": "Date",
   "time": "Time",
   "createdAt": "Created At",
   "cancelledAt": "Cancelled At",
-
   "noData": "No Data Available",
   "loading": "Loading...",
   "error": "Something went wrong",
-
   "todayIsDayOff": "Today is day-off. Please check your roster or contact HR.",
-  "checkOtRequest": "Please check your OT request and try again."
+  "checkOtRequest": "Please check your OT request and try again.",
+  "about": "About",
+  "appName": "Safety Checklists",
+  "version": "Version {version}",
+  "appDescription": "A comprehensive vehicle inspection system for safety compliance and monitoring.",
+  "close": "Close",
+  "safetyChecklists": "Safety Checklists",
+  "totalChecks": "Total Checks",
+  "thisWeek": "This Week",
+  "avgPassRate": "Avg Pass Rate",
+  "allTime": "All Time",
+  "today": "Today",
+  "yesterday": "Yesterday",
+  "last7Days": "Last 7 Days",
+  "last30Days": "Last 30 Days",
+  "filterChecklists": "Filter Checklists",
+  "selectTimePeriod": "Select a time period to filter your inspections",
+  "dashboardOverview": "Dashboard Overview",
+  "confirmExit": "Are you sure you want to exit the system?",
+  "no": "No",
+  "okay": "Okay",
+  "editSafetyCheck": "Edit Safety Check",
+  "newSafetyCheck": "New Safety Check",
+  "safetyChecklistDetails": "Safety Checklist Details",
+  "scanPlateNumber": "Scan Vehicle Plate Number"
 }

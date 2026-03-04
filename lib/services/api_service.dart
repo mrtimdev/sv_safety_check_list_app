@@ -12,6 +12,8 @@ import '../models/inspection.dart';
 import '../services/secure_storage.dart';
 
 class ApiService {
+  // static const String homeUrl = 'http://192.168.0.37:8084';
+  // static const String baseUrl = 'http://192.168.0.37:8084/api/v1';
   static const String homeUrl = 'http://45.201.196.19:8084';
   static const String baseUrl = 'http://45.201.196.19:8084/api/v1';
   // 'http://45.201.196.19:8084/api/v1';
@@ -44,7 +46,8 @@ class ApiService {
       try {
         final error = json.decode(response.body);
         throw Exception(
-            error['error'] ?? 'Request failed: ${response.statusCode}');
+          error['error'] ?? 'Request failed: ${response.statusCode}',
+        );
       } catch (e) {
         throw Exception('Request failed: ${response.statusCode}');
       }
@@ -95,17 +98,12 @@ class ApiService {
           'Accept': 'application/json',
         });
       } else {
-        request.headers.addAll({
-          'Accept': 'application/json',
-        });
+        request.headers.addAll({'Accept': 'application/json'});
       }
 
       // Add image file
       request.files.add(
-        await http.MultipartFile.fromPath(
-          'image',
-          imageFile.path,
-        ),
+        await http.MultipartFile.fromPath('image', imageFile.path),
       );
 
       // Send request
@@ -122,7 +120,8 @@ class ApiService {
         throw Exception('Unauthorized: Please login again');
       } else {
         throw Exception(
-            'Failed to upload image: ${response.statusCode} - ${response.body}');
+          'Failed to upload image: ${response.statusCode} - ${response.body}',
+        );
       }
     } catch (e) {
       print('Error uploading image: $e');
@@ -166,13 +165,16 @@ class ApiService {
         return json.decode(response.body);
       } else if (response.statusCode == 409) {
         final error = json.decode(response.body);
-        throw Exception(error['error'] ??
-            'Checklist already exists for this driver on this date');
+        throw Exception(
+          error['error'] ??
+              'Checklist already exists for this driver on this date',
+        );
       } else if (response.statusCode == 401) {
         throw Exception('Unauthorized: Please login again');
       } else {
         throw Exception(
-            'Failed to create checklist: ${response.statusCode} - ${response.body}');
+          'Failed to create checklist: ${response.statusCode} - ${response.body}',
+        );
       }
     } catch (e) {
       print('Error creating checklist: $e');
@@ -196,9 +198,7 @@ class ApiService {
       // Add auth token to headers
       final token = await SecureStorage.getToken();
       if (token != null) {
-        request.headers.addAll({
-          'Authorization': 'Bearer $token',
-        });
+        request.headers.addAll({'Authorization': 'Bearer $token'});
       }
 
       // Add JSON data as a field
@@ -271,7 +271,8 @@ class ApiService {
         throw Exception('Unauthorized: Please login again');
       } else {
         throw Exception(
-            'Failed to update checklist: ${response.statusCode} - ${response.body}');
+          'Failed to update checklist: ${response.statusCode} - ${response.body}',
+        );
       }
     } catch (e) {
       print('Error updating checklist: $e');
@@ -299,10 +300,7 @@ class ApiService {
 
       final headers = await _getAuthHeaders();
 
-      final response = await http.get(
-        Uri.parse(url),
-        headers: headers,
-      );
+      final response = await http.get(Uri.parse(url), headers: headers);
 
       print('Get checklists response status: ${response.statusCode}');
 
@@ -378,14 +376,16 @@ class ApiService {
 
   // Parse checklists from response
   List<ServiceChecker> parseChecklistsFromResponse(
-      Map<String, dynamic> response) {
+    Map<String, dynamic> response,
+  ) {
     try {
       final List<dynamic> data = response['data'] ?? [];
       print("📊 Parsing ${data.length} checklists from response");
 
       return data.map((json) {
         print(
-            "📄 Parsing checklist item: ${json['id']} - ${json['licensePlate']}");
+          "📄 Parsing checklist item: ${json['id']} - ${json['licensePlate']}",
+        );
         return ServiceChecker.fromJson(json);
       }).toList();
     } catch (e) {
@@ -409,7 +409,8 @@ class ApiService {
 
       final response = await http.put(
         Uri.parse(
-            '$baseUrl$checklistsEndpoint/$id/cancel?reason=${Uri.encodeComponent(reason)}'),
+          '$baseUrl$checklistsEndpoint/$id/cancel?reason=${Uri.encodeComponent(reason)}',
+        ),
         headers: headers,
       );
 
@@ -427,10 +428,7 @@ class ApiService {
   // Login method
   Future<LoginResponse> login(String identifier, String password) async {
     try {
-      final request = LoginRequest(
-        identifier: identifier,
-        password: password,
-      );
+      final request = LoginRequest(identifier: identifier, password: password);
 
       final response = await http.post(
         Uri.parse('$baseUrl/auth/login'),
@@ -506,15 +504,19 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> detectPlateWithoutToken(File imageFile) async {
-    var request =
-        http.MultipartRequest('POST', Uri.parse('http://0.0.0.0:8000/detect'));
+    var request = http.MultipartRequest(
+      'POST',
+      Uri.parse('http://0.0.0.0:8000/detect'),
+    );
 
     // Add image file
-    request.files.add(await http.MultipartFile.fromPath(
-      'file',
-      imageFile.path,
-      contentType: MediaType('image', 'jpeg'),
-    ));
+    request.files.add(
+      await http.MultipartFile.fromPath(
+        'file',
+        imageFile.path,
+        contentType: MediaType('image', 'jpeg'),
+      ),
+    );
 
     // Send request
     var streamedResponse = await request.send();
@@ -540,14 +542,11 @@ class ApiService {
 
   Future<String?> detectPlate(File imageFile) async {
     try {
-      final String apiUrl = 'http://45.201.196.19:8084/api/v1/plates/detect';
+      final String apiUrl = '$baseUrl/plates/detect';
 
       final headers = await _getAuthHeaders();
 
-      var request = http.MultipartRequest(
-        'POST',
-        Uri.parse(apiUrl),
-      );
+      var request = http.MultipartRequest('POST', Uri.parse(apiUrl));
 
       // FIXED FIELD NAME
       request.files.add(
@@ -562,8 +561,9 @@ class ApiService {
       request.headers.addAll(headers);
       request.headers['Accept'] = 'application/json';
 
-      var streamedResponse =
-          await request.send().timeout(const Duration(seconds: 30));
+      var streamedResponse = await request.send().timeout(
+        const Duration(seconds: 30),
+      );
 
       var resBody = await streamedResponse.stream.bytesToString();
       var jsonData = jsonDecode(resBody);
@@ -576,7 +576,8 @@ class ApiService {
             if (result['plate_text'] != null &&
                 result['plate_text'].toString().isNotEmpty) {
               return cleanPlateText(
-                  result['display_text'] ?? result['plate_text']);
+                result['display_text'] ?? result['plate_text'],
+              );
             }
           }
         }

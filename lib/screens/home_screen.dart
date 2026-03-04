@@ -458,9 +458,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _confirmLogout() {
+    final t = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
@@ -473,15 +475,15 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Icon(Icons.logout, color: Colors.orange.shade700),
             ),
             const SizedBox(width: 12),
-            const Text('ចាកចេញពីប្រព័ន្ធ'),
+            Text(t.logout),
           ],
         ),
-        content: const Text('តើអ្នកពិតជាចង់ចាកចេញពីប្រព័ន្ធមែនទេ?'),
+        content: Text(t.confirmExit),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: Text(
-              'ទេ',
+              t.no,
               style: TextStyle(color: Colors.grey.shade600),
             ),
           ),
@@ -497,7 +499,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            child: const Text('ចាកចេញ'),
+            child: Text(t.okay),
           ),
         ],
       ),
@@ -507,13 +509,13 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final stats = _calculateStats();
-
+    final t = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       drawer: _buildDrawer(),
       appBar: AppBar(
-        title: const Text(
-          ' Safety Checklists',
+        title: Text(
+          ' ' + t.safetyChecklists,
           style: TextStyle(
             fontWeight: FontWeight.w700,
             fontSize: 20,
@@ -1116,7 +1118,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final String userRole = _userData?['role'] ?? 'Inspector';
     final String userInitial =
         userName.isNotEmpty ? userName[0].toUpperCase() : 'U';
-
+    final t = AppLocalizations.of(context)!;
     return Drawer(
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.only(
@@ -1245,24 +1247,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   _buildDrawerItem(
                     icon: Icons.dashboard_rounded,
-                    label: 'Dashboard',
+                    label: t.dashboardOverview,
                     onTap: () {
                       Navigator.pop(context);
-                    },
-                  ),
-                  _buildDrawerItem(
-                    icon: Icons.assignment_rounded,
-                    label: 'My Checklists',
-                    onTap: () {
-                      Navigator.pop(context);
-                    },
-                  ),
-                  _buildDrawerItem(
-                    icon: Icons.bar_chart_rounded,
-                    label: 'Statistics',
-                    onTap: () {
-                      Navigator.pop(context);
-                      _showStatisticsDialog();
                     },
                   ),
                   _buildDrawerItem(
@@ -1275,7 +1262,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   _buildDrawerItem(
                     icon: Icons.info_outline_rounded,
-                    label: 'About',
+                    label: t.about,
                     onTap: () {
                       Navigator.pop(context);
                       _showAboutDialog();
@@ -1302,7 +1289,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Icon(Icons.logout_rounded, color: Colors.red.shade700),
                 ),
                 title: Text(
-                  'ចាកចេញពីប្រព័ន្ធ',
+                  t.logout,
                   style: TextStyle(
                     color: Colors.red.shade700,
                     fontWeight: FontWeight.w600,
@@ -1370,12 +1357,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _showLanguageDialog(BuildContext context) {
-    final settingsProvider = context.read<SettingsProvider>();
-
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
+          backgroundColor: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
@@ -1430,7 +1416,7 @@ class _HomeScreenState extends State<HomeScreen> {
           color: isSelected ? surfaceBlue : Colors.grey.shade100,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? primaryBlue : Colors.transparent,
+            color: isSelected ? darkBlue : Colors.transparent,
             width: 1.5,
           ),
         ),
@@ -1441,7 +1427,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 title,
                 style: TextStyle(
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                  color: isSelected ? primaryBlue : darkBlue,
+                  color: isSelected ? darkBlue : darkBlue,
                   fontSize: 16,
                 ),
               ),
@@ -1449,70 +1435,11 @@ class _HomeScreenState extends State<HomeScreen> {
             if (isSelected)
               Icon(
                 Icons.check_circle_rounded,
-                color: primaryBlue,
+                color: darkBlue,
                 size: 22,
               ),
           ],
         ),
-      ),
-    );
-  }
-
-  void _showStatisticsDialog() {
-    final stats = _calculateStats();
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: surfaceBlue,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(Icons.bar_chart_rounded, color: primaryBlue),
-            ),
-            const SizedBox(width: 12),
-            const Text('Statistics Overview'),
-          ],
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildStatRow('Total Checklists', stats['total'].toString()),
-              _buildStatRow('This Week', stats['thisWeek'].toString()),
-              _buildStatRow('Average Pass Rate',
-                  '${stats['avgPassRate'].toStringAsFixed(1)}%'),
-              _buildStatRow('Total Items', stats['totalItems'].toString()),
-              _buildStatRow(
-                  'Total Checked Items', stats['totalChecked'].toString()),
-              const Divider(height: 24),
-              const Text('Pass Rate Distribution',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              _buildStatusStat(
-                  'លទ្ធផលល្អឥតខ្ចោះ (90%+)', Colors.green, stats['excellent']),
-              _buildStatusStat(
-                  'លទ្ធផលល្អ (75-89%)', Colors.lightGreen, stats['good']),
-              _buildStatusStat(
-                  'លទ្ធផលមធ្យម (50-74%)', Colors.orange, stats['average']),
-              _buildStatusStat(
-                  'លទ្ធផលខ្សោយ (25-49%)', Colors.deepOrange, stats['poor']),
-              _buildStatusStat(
-                  'ស្ថានភាពគ្រោះថ្នាក់ (<25%)', Colors.red, stats['critical']),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
       ),
     );
   }
@@ -1580,9 +1507,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _showAboutDialog() {
+    final t = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
@@ -1595,7 +1524,7 @@ class _HomeScreenState extends State<HomeScreen> {
               child: const Icon(Icons.info_outline_rounded, color: primaryBlue),
             ),
             const SizedBox(width: 12),
-            const Text('About'),
+            Text(t.about),
           ],
         ),
         content: Column(
@@ -1614,8 +1543,8 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
-              'Safety Check',
+            Text(
+              t.appName,
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -1623,16 +1552,16 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Version 1.0.0',
+            Text(
+              t.version("1.0.1"),
               style: TextStyle(
                 fontSize: 14,
                 color: Colors.grey,
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
-              'A comprehensive vehicle inspection system for safety compliance and monitoring.',
+            Text(
+              t.appDescription,
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 14, height: 1.5),
             ),
@@ -1641,7 +1570,7 @@ class _HomeScreenState extends State<HomeScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
+            child: Text(t.close),
           ),
         ],
       ),
@@ -1649,6 +1578,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildStatsDashboard(Map<String, dynamic> stats) {
+    final t = AppLocalizations.of(context)!;
     return Container(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(20),
@@ -1677,7 +1607,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Dashboard Overview',
+                    t.dashboardOverview,
                     style: TextStyle(
                       color: Colors.white.withOpacity(0.8),
                       fontSize: 13,
@@ -1685,8 +1615,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  const Text(
-                    'Safety checklists',
+                  Text(
+                    t.safetyChecklists,
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 22,
@@ -1715,7 +1645,7 @@ class _HomeScreenState extends State<HomeScreen> {
               Expanded(
                 child: _buildDashboardStat(
                   stats['total'].toString(),
-                  'Total Checks',
+                  t.totalChecks,
                   Icons.assignment_turned_in_rounded,
                 ),
               ),
@@ -1728,7 +1658,7 @@ class _HomeScreenState extends State<HomeScreen> {
               Expanded(
                 child: _buildDashboardStat(
                   stats['thisWeek'].toString(),
-                  'This Week',
+                  t.thisWeek,
                   Icons.trending_up_rounded,
                 ),
               ),
@@ -1741,7 +1671,7 @@ class _HomeScreenState extends State<HomeScreen> {
               Expanded(
                 child: _buildDashboardStat(
                   '${stats['avgPassRate'].toStringAsFixed(0)}%',
-                  'Avg Pass Rate',
+                  t.avgPassRate,
                   Icons.verified_rounded,
                 ),
               ),
@@ -1974,7 +1904,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             const SizedBox(width: 6),
                             Text(
                               isCreator
-                                  ? 'បង្កើតឡើងដោយអ្នក'
+                                  ? 'បង្កើតឡើងដោយ: អ្នក'
                                   : 'បង្កើតឡើងដោយ: ${checklist.createdBy!.displayName}',
                               style: TextStyle(
                                 fontSize: 12,
@@ -2499,22 +2429,22 @@ class _HomeScreenState extends State<HomeScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: surfaceBlue,
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 Icons.assignment_outlined,
-                size: 48,
+                size: 28,
                 color: primaryBlue.withOpacity(0.5),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 10),
             Text(
               'No Checklists Yet',
               style: TextStyle(
-                fontSize: 20,
+                fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: Colors.grey.shade700,
               ),
@@ -2614,9 +2544,12 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _showFilterDialog() {
+    final t = AppLocalizations.of(context)!;
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
+      isScrollControlled:
+          true, // Allow the bottom sheet to be scroll controlled
       builder: (context) => Container(
         decoration: const BoxDecoration(
           color: Colors.white,
@@ -2638,8 +2571,8 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             const SizedBox(height: 24),
-            const Text(
-              'Filter Checklists',
+            Text(
+              t.filterChecklists,
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -2648,21 +2581,31 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Select a time period to filter your inspections',
+              t.selectTimePeriod,
               style: TextStyle(
                 fontSize: 14,
                 color: Colors.grey.shade600,
               ),
             ),
             const SizedBox(height: 20),
-            _buildFilterOption(
-                'All Time', 'all', Icons.calendar_view_month_rounded),
-            _buildFilterOption('Today', 'today', Icons.today_rounded),
-            _buildFilterOption('Yesterday', 'yesterday', Icons.history_rounded),
-            _buildFilterOption(
-                'Last 7 Days', 'last7Days', Icons.date_range_rounded),
-            _buildFilterOption(
-                'Last 30 Days', 'last30Days', Icons.calendar_month_rounded),
+            // Wrap the filter options in Flexible to handle overflow
+            SingleChildScrollView(
+              child: ListView(
+                shrinkWrap: true, // Make ListView take only needed space
+                padding: EdgeInsets.zero,
+                children: [
+                  _buildFilterOption(
+                      t.allTime, 'all', Icons.calendar_view_month_rounded),
+                  _buildFilterOption(t.today, 'today', Icons.today_rounded),
+                  _buildFilterOption(
+                      t.yesterday, 'yesterday', Icons.history_rounded),
+                  _buildFilterOption(
+                      t.last7Days, 'last7Days', Icons.date_range_rounded),
+                  _buildFilterOption(
+                      t.last30Days, 'last30Days', Icons.calendar_month_rounded),
+                ],
+              ),
+            ),
             const SizedBox(height: 16),
           ],
         ),

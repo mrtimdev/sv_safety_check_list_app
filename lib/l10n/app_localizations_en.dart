@@ -73,4 +73,78 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get checkOtRequest => 'Please check your OT request and try again.';
+
+  @override
+  String get about => 'About';
+
+  @override
+  String get appName => 'Safety Checklists';
+
+  @override
+  String version(Object version) {
+    return 'Version $version';
+  }
+
+  @override
+  String get appDescription => 'A comprehensive vehicle inspection system for safety compliance and monitoring.';
+
+  @override
+  String get close => 'Close';
+
+  @override
+  String get safetyChecklists => 'Safety Checklists';
+
+  @override
+  String get totalChecks => 'Total Checks';
+
+  @override
+  String get thisWeek => 'This Week';
+
+  @override
+  String get avgPassRate => 'Avg Pass Rate';
+
+  @override
+  String get allTime => 'All Time';
+
+  @override
+  String get today => 'Today';
+
+  @override
+  String get yesterday => 'Yesterday';
+
+  @override
+  String get last7Days => 'Last 7 Days';
+
+  @override
+  String get last30Days => 'Last 30 Days';
+
+  @override
+  String get filterChecklists => 'Filter Checklists';
+
+  @override
+  String get selectTimePeriod => 'Select a time period to filter your inspections';
+
+  @override
+  String get dashboardOverview => 'Dashboard Overview';
+
+  @override
+  String get confirmExit => 'Are you sure you want to exit the system?';
+
+  @override
+  String get no => 'No';
+
+  @override
+  String get okay => 'Okay';
+
+  @override
+  String get editSafetyCheck => 'Edit Safety Check';
+
+  @override
+  String get newSafetyCheck => 'New Safety Check';
+
+  @override
+  String get safetyChecklistDetails => 'Safety Checklist Details';
+
+  @override
+  String get scanPlateNumber => 'Scan Vehicle Plate Number';
 }

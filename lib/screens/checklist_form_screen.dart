@@ -3,8 +3,10 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:safety_check_list/l10n/app_localizations.dart';
 import 'package:safety_check_list/models/device_info.dart';
 import 'package:safety_check_list/models/service_checker.dart';
+import 'package:safety_check_list/widgets/gradient_app_bar.dart';
 import '../models/category.dart';
 import '../models/inspection.dart';
 import '../widgets/category_card.dart';
@@ -507,14 +509,12 @@ class _ChecklistFormScreenState extends State<ChecklistFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context)!;
     if (_loadingDeviceInfo) {
       return Scaffold(
-        appBar: AppBar(
-          title: Text(
-              _editingId != null ? 'Edit Safety Check' : 'New Safety Check'),
-          backgroundColor: Colors.white,
-          foregroundColor: const Color(0xFF1E3A8A),
-          elevation: 0,
+        appBar: GradientAppBar(
+          title: _editingId != null ? t.editSafetyCheck : t.newSafetyCheck,
+          showLoading: _isLoading,
         ),
         body: const Center(
           child: Column(
@@ -530,18 +530,10 @@ class _ChecklistFormScreenState extends State<ChecklistFormScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          _editingId != null ? 'Edit Safety Check' : 'New Safety Check',
-          style: const TextStyle(
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF1E3A8A),
-          ),
-        ),
-        backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF1E3A8A),
-        elevation: 0,
-        centerTitle: false,
+      appBar: GradientAppBar(
+        title: _editingId != null ? t.editSafetyCheck : t.newSafetyCheck,
+        showLoading: _isLoading,
+        // Optional: Add custom actions
         actions: [
           if (_isLoading)
             const Padding(

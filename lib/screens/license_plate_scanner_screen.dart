@@ -1,16 +1,14 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
-import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:safety_check_list/l10n/app_localizations.dart';
 import 'package:safety_check_list/services/api_service.dart';
+import 'package:safety_check_list/widgets/gradient_app_bar.dart';
 import '../widgets/loading_indicator.dart';
-import 'package:http/http.dart' as http;
-import 'package:http_parser/http_parser.dart';
 
 class LicensePlateScannerScreen extends StatefulWidget {
   final Function(
@@ -39,6 +37,12 @@ class _LicensePlateScannerScreenState extends State<LicensePlateScannerScreen> {
   final ApiService _apiService = ApiService();
 
   static const Color primaryColor = Color(0xFF1E3A8A);
+  static const Color primaryBlue = Color(0xFF1E40AF);
+  static const Color secondaryBlue = Color(0xFF3B82F6);
+  static const Color accentBlue = Color(0xFF60A5FA);
+  static const Color lightBlue = Color(0xFFDBEAFE);
+  static const Color darkBlue = Color(0xFF1E3A8A);
+  static const Color surfaceBlue = Color(0xFFF0F9FF);
 
   Future<String?> _saveImagePermanently(File imageFile) async {
     try {
@@ -71,13 +75,11 @@ class _LicensePlateScannerScreenState extends State<LicensePlateScannerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('ស្កេនលេខផ្លាករថយន្ត',
-            style: TextStyle(color: Colors.white)),
-        elevation: 0,
-        backgroundColor: primaryColor,
-        foregroundColor: Colors.white,
+      appBar: GradientAppBar(
+        title: t.scanPlateNumber,
+        showLoading: false,
       ),
       body: SingleChildScrollView(
         child: Padding(
