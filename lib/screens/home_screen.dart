@@ -2677,7 +2677,8 @@ class _HomeScreenState extends State<HomeScreen> {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => ChecklistDetailScreen(checklist: checklist),
+        builder: (context) =>
+            ChecklistDetailScreen(checklistId: checklist.id as int),
       ),
     );
     if (result == true) {

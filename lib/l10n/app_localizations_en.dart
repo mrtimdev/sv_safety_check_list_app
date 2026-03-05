@@ -147,4 +147,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get scanPlateNumber => 'Scan Vehicle Plate Number';
+
+  @override
+  String get update => 'Update';
 }

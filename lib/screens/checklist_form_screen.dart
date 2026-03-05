@@ -49,6 +49,7 @@ class _ChecklistFormScreenState extends State<ChecklistFormScreen> {
 
   // Track which items need note validation
   final Map<int, bool> _noteValidationErrors = {};
+  final Map<int, bool> _itemRequiredErrors = {};
 
   late TextEditingController _licensePlateController;
 
@@ -122,49 +123,60 @@ class _ChecklistFormScreenState extends State<ChecklistFormScreen> {
         _inspections[category.id] = [];
       }
 
-      // Process each ServiceCheckerItem
       for (var serviceItem in widget.checklistToEdit!.items) {
         final categoryId = serviceItem.category.id;
-
-        // Get all inspection items from this service item
         final checklistItems = serviceItem.inspectionItems;
-
+        final existingItemIds =
+            _inspections[categoryId]?.map((i) => i.itemId).toSet() ?? {};
         for (var item in checklistItems) {
+          bool isRequired = false;
+
+          // Find the correct category
+          final category = _categories.firstWhere((c) => c.id == categoryId);
+
+          // Find the correct item inside that category
+          final categoryItem =
+              category.items.firstWhere((ci) => ci.id == item.id);
+
+          isRequired = categoryItem.isRequired;
+
+          print(
+              "isRequired for item ${item.id} (${item.khmerName}): $isRequired");
+
           _inspections[categoryId]?.add(Inspection(
             itemId: item.id,
             itemName: item.khmerName ?? item.name,
             passed: item.passed,
             note: item.note,
+            isRequired: isRequired,
           ));
         }
       }
+      // for (var category in _categories) {
+      //   final existingItemIds =
+      //       _inspections[category.id]?.map((i) => i.itemId).toSet() ?? {};
 
-      // Fill in any missing items from categories (in case API response doesn't include all)
-      for (var category in _categories) {
-        final existingItemIds =
-            _inspections[category.id]?.map((i) => i.itemId).toSet() ?? {};
-
-        for (var categoryItem in category.items) {
-          if (!existingItemIds.contains(categoryItem.id)) {
-            _inspections[category.id]?.add(Inspection(
-              itemId: categoryItem.id,
-              itemName: categoryItem.khmerName,
-              passed: true, // Default to passed for missing items
-              note: null,
-            ));
-          }
-        }
-      }
+      //   for (var categoryItem in category.items) {
+      //     if (!existingItemIds.contains(categoryItem.id)) {
+      //       _inspections[category.id]?.add(Inspection(
+      //           itemId: categoryItem.id,
+      //           itemName: categoryItem.khmerName,
+      //           // passed: true,
+      //           // note: null,
+      //           isRequired: categoryItem.isRequired));
+      //     }
+      //   }
+      // }
     } else {
       // Initialize new checklist with all categories and items defaulting to passed
       for (var category in _categories) {
         _inspections[category.id] = category.items
             .map((item) => Inspection(
-                  itemId: item.id,
-                  itemName: item.khmerName,
-                  passed: true,
-                  note: null,
-                ))
+                itemId: item.id,
+                itemName: item.khmerName,
+                passed: true,
+                note: null,
+                isRequired: item.isRequired))
             .toList();
       }
     }
@@ -245,12 +257,17 @@ class _ChecklistFormScreenState extends State<ChecklistFormScreen> {
 
     // Check for failed items without notes
     _noteValidationErrors.clear();
+    _itemRequiredErrors.clear();
 
     _inspections.forEach((categoryId, inspections) {
       for (var inspection in inspections) {
         if (!inspection.passed &&
-            (inspection.note == null || inspection.note!.trim().isEmpty)) {
+            (inspection.note == null || inspection.note!.trim().isEmpty) &&
+            !inspection.isRequired) {
           _noteValidationErrors[inspection.itemId] = true;
+          isValid = false;
+        } else if (!inspection.passed && inspection.isRequired) {
+          _itemRequiredErrors[inspection.itemId] = true;
           isValid = false;
         }
       }
@@ -267,6 +284,28 @@ class _ChecklistFormScreenState extends State<ChecklistFormScreen> {
               const SizedBox(width: 8),
               const Expanded(
                 child: Text('Please add notes for all failed items'),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.orange.shade700,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      );
+    }
+
+    if (!isValid && _itemRequiredErrors.isNotEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.warning_amber, color: Colors.white),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                    'សូមពិនិត្យមើលម្តងទៀត ព្រោះលក្ខខណ្ឌខ្លះត្រូវតែមានមុនពេលបញ្ជូន'),
               ),
             ],
           ),
@@ -482,6 +521,14 @@ class _ChecklistFormScreenState extends State<ChecklistFormScreen> {
             _noteValidationErrors[itemId] = true;
           } else if (passed) {
             _noteValidationErrors.remove(itemId);
+          }
+          // handle required item validation
+          if (!passed && inspections[index].isRequired) {
+            _itemRequiredErrors.remove(itemId);
+          } else if (!passed && (note == null || note.isEmpty)) {
+            _itemRequiredErrors[itemId] = true;
+          } else if (passed) {
+            _itemRequiredErrors.remove(itemId);
           }
         }
       }
@@ -858,77 +905,6 @@ class _ChecklistFormScreenState extends State<ChecklistFormScreen> {
             ],
           ),
 
-          // // Estimated Plate Display with View Button (when available)
-          // if (_licensePlateEstimated.isNotEmpty) ...[
-          //   const SizedBox(height: 12),
-          //   Row(
-          //     children: [
-          //       Expanded(
-          //         child: GestureDetector(
-          //           onTap: _showEstimatedPlateDialog,
-          //           child: Container(
-          //             padding: const EdgeInsets.symmetric(
-          //                 horizontal: 12, vertical: 8),
-          //             decoration: BoxDecoration(
-          //               color: Colors.blue.shade50,
-          //               borderRadius: BorderRadius.circular(12),
-          //               border: Border.all(color: Colors.blue.shade200),
-          //             ),
-          //             child: Row(
-          //               children: [
-          //                 Icon(Icons.camera_alt,
-          //                     size: 18, color: Colors.blue.shade700),
-          //                 const SizedBox(width: 10),
-          //                 Expanded(
-          //                   child: LayoutBuilder(
-          //                     builder: (context, constraints) {
-          //                       return Row(
-          //                         crossAxisAlignment: CrossAxisAlignment.start,
-          //                         children: [
-          //                           Text(
-          //                             'Scanned Plate',
-          //                             style: TextStyle(
-          //                               fontSize: 11,
-          //                               color: Colors.blue.shade700,
-          //                               fontWeight: FontWeight.w600,
-          //                               letterSpacing: 0.3,
-          //                             ),
-          //                           ),
-          //                           const SizedBox(width: 8),
-          //                           Expanded(
-          //                             child: Text(
-          //                               _removeAllWhitespace(
-          //                                   _licensePlateEstimated),
-          //                               style: TextStyle(
-          //                                 fontSize: 11,
-          //                                 color: Colors.blue.shade900,
-          //                                 fontWeight: FontWeight.bold,
-          //                               ),
-          //                               maxLines: 1,
-          //                               overflow: TextOverflow.ellipsis,
-          //                             ),
-          //                           ),
-          //                         ],
-          //                       );
-          //                     },
-          //                   ),
-          //                 ),
-          //                 const SizedBox(width: 4),
-          //                 Icon(
-          //                   Icons.chevron_right,
-          //                   size: 18,
-          //                   color: Colors.blue.shade400,
-          //                 ),
-          //               ],
-          //             ),
-          //           ),
-          //         ),
-          //       ),
-          //     ],
-          //   ),
-          // ],
-
-          // Image Preview Section
           if (_imagePath != null) ...[
             const SizedBox(height: 8),
             Container(
@@ -1294,6 +1270,7 @@ class _ChecklistFormScreenState extends State<ChecklistFormScreen> {
   }
 
   Widget _buildBottomBar() {
+    final t = AppLocalizations.of(context)!;
     if (_isLoading && _categories.isNotEmpty) {
       return Container(
         padding: const EdgeInsets.all(16),
@@ -1343,7 +1320,7 @@ class _ChecklistFormScreenState extends State<ChecklistFormScreen> {
                     borderRadius: BorderRadius.circular(14),
                   ),
                 ),
-                child: const Text('Cancel'),
+                child: Text(t.cancel),
               ),
             ),
             const SizedBox(width: 12),
@@ -1363,7 +1340,7 @@ class _ChecklistFormScreenState extends State<ChecklistFormScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      _editingId != null ? 'Update' : 'Save',
+                      _editingId != null ? t.update : t.save,
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,

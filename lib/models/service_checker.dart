@@ -225,14 +225,14 @@ class ServiceCheckerItem {
   List<ChecklistItem> get inspectionItems {
     return notes.map((note) {
       return ChecklistItem(
-        id: note.inspectionItem.id,
-        name: note.inspectionItem.name,
-        khmerName: note.inspectionItem.khmerName,
-        passed: note.passed,
-        note: note.note,
-        categoryId: category.id,
-        categoryName: category.name,
-      );
+          id: note.inspectionItem.id,
+          name: note.inspectionItem.name,
+          khmerName: note.inspectionItem.khmerName,
+          passed: note.passed,
+          note: note.note,
+          categoryId: category.id,
+          categoryName: category.name,
+          isRequired: category.isRequired);
     }).toList();
   }
 }
@@ -241,18 +241,20 @@ class CategoryDTO {
   final int id;
   final String name;
   final String? khmerName;
+  final bool isRequired;
 
-  CategoryDTO({
-    required this.id,
-    required this.name,
-    this.khmerName,
-  });
+  CategoryDTO(
+      {required this.id,
+      required this.name,
+      this.khmerName,
+      required this.isRequired});
 
   factory CategoryDTO.fromJson(Map<String, dynamic> json) {
     return CategoryDTO(
       id: json['id'] ?? 0,
       name: json['name'] ?? '',
       khmerName: json['khmerName'],
+      isRequired: json['isRequired'] ?? true,
     );
   }
 
@@ -261,6 +263,7 @@ class CategoryDTO {
       'id': id,
       'name': name,
       'khmerName': khmerName,
+      'isRequired': isRequired,
     };
   }
 }
@@ -269,12 +272,14 @@ class ServiceCheckerItemNote {
   final int id;
   final ItemDTO inspectionItem;
   final bool passed;
+  final bool isRequired;
   final String? note;
 
   ServiceCheckerItemNote({
     required this.id,
     required this.inspectionItem,
     required this.passed,
+    required this.isRequired,
     this.note,
   });
 
@@ -283,6 +288,7 @@ class ServiceCheckerItemNote {
       id: json['id'] ?? 0,
       inspectionItem: ItemDTO.fromJson(json['inspectionItem'] ?? {}),
       passed: json['passed'] ?? true,
+      isRequired: json['isRequired'] ?? true,
       note: json['note'],
     );
   }
@@ -292,6 +298,7 @@ class ServiceCheckerItemNote {
       'id': id,
       'inspectionItem': inspectionItem.toJson(),
       'passed': passed,
+      'isRequired': isRequired,
       'note': note,
     };
   }
@@ -301,11 +308,13 @@ class ItemDTO {
   final int id;
   final String name;
   final String? khmerName;
+  final bool isRequired;
 
   ItemDTO({
     required this.id,
     required this.name,
     this.khmerName,
+    required this.isRequired,
   });
 
   factory ItemDTO.fromJson(Map<String, dynamic> json) {
@@ -313,6 +322,7 @@ class ItemDTO {
       id: json['id'] ?? 0,
       name: json['name'] ?? '',
       khmerName: json['khmerName'],
+      isRequired: json['isRequired'] ?? true,
     );
   }
 
@@ -321,6 +331,7 @@ class ItemDTO {
       'id': id,
       'name': name,
       'khmerName': khmerName,
+      'isRequired': isRequired,
     };
   }
 }
@@ -334,16 +345,17 @@ class ChecklistItem {
   final String? note;
   final int? categoryId;
   final String? categoryName;
+  final bool isRequired;
 
-  ChecklistItem({
-    required this.id,
-    required this.name,
-    this.khmerName,
-    required this.passed,
-    this.note,
-    this.categoryId,
-    this.categoryName,
-  });
+  ChecklistItem(
+      {required this.id,
+      required this.name,
+      this.khmerName,
+      required this.passed,
+      this.note,
+      this.categoryId,
+      this.categoryName,
+      required this.isRequired});
 
   factory ChecklistItem.fromJson(Map<String, dynamic> json) {
     return ChecklistItem(
@@ -354,6 +366,7 @@ class ChecklistItem {
       note: json['note'],
       categoryId: json['categoryId'],
       categoryName: json['categoryName'],
+      isRequired: json['isRequired'] ?? true,
     );
   }
 
@@ -366,6 +379,7 @@ class ChecklistItem {
       'note': note,
       'categoryId': categoryId,
       'categoryName': categoryName,
+      'isRequired': isRequired,
     };
   }
 

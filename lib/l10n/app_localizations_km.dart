@@ -147,4 +147,7 @@ class AppLocalizationsKm extends AppLocalizations {
 
   @override
   String get scanPlateNumber => 'ស្កេនលេខផ្លាករថយន្ត';
+
+  @override
+  String get update => 'ធ្វើបច្ចុប្បន្នភាព';
 }

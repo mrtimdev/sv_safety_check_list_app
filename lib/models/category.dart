@@ -38,19 +38,20 @@ class ChecklistItem {
   final int id;
   final String khmerName;
   final String? englishName;
+  final bool isRequired;
 
-  ChecklistItem({
-    required this.id,
-    required this.khmerName,
-    this.englishName,
-  });
+  ChecklistItem(
+      {required this.id,
+      required this.khmerName,
+      this.englishName,
+      required this.isRequired});
 
   factory ChecklistItem.fromJson(Map<String, dynamic> json) {
     return ChecklistItem(
-      id: json['id'] ?? 0,
-      khmerName: json['khmerName'] ?? json['name'] ?? '',
-      englishName: json['englishName'],
-    );
+        id: json['id'] ?? 0,
+        khmerName: json['khmerName'] ?? json['name'] ?? '',
+        englishName: json['englishName'],
+        isRequired: json['isRequired']);
   }
 
   Map<String, dynamic> toJson() {
@@ -58,6 +59,7 @@ class ChecklistItem {
       'id': id,
       'khmerName': khmerName,
       'englishName': englishName,
+      'isRequired': isRequired
     };
   }
 }

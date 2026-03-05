@@ -48,5 +48,6 @@
   "editSafetyCheck": "Edit Safety Check",
   "newSafetyCheck": "New Safety Check",
   "safetyChecklistDetails": "Safety Checklist Details",
-  "scanPlateNumber": "Scan Vehicle Plate Number"
+  "scanPlateNumber": "Scan Vehicle Plate Number",
+  "update": "Update"
 }

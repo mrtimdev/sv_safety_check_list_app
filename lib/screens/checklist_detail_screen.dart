@@ -8,11 +8,38 @@ import 'package:safety_check_list/screens/checklist_form_screen.dart';
 import 'package:safety_check_list/services/api_service.dart';
 import 'package:safety_check_list/widgets/gradient_app_bar.dart';
 
-class ChecklistDetailScreen extends StatelessWidget {
-  final ServiceChecker checklist;
+class ChecklistDetailScreen extends StatefulWidget {
+  final int checklistId;
 
-  const ChecklistDetailScreen({Key? key, required this.checklist})
-      : super(key: key);
+  const ChecklistDetailScreen({
+    Key? key,
+    required this.checklistId,
+  }) : super(key: key);
+
+  @override
+  State<ChecklistDetailScreen> createState() => _ChecklistDetailScreenState();
+}
+
+class _ChecklistDetailScreenState extends State<ChecklistDetailScreen> {
+  late Future<ServiceChecker> checklistFuture;
+  ServiceChecker? _checklist; // Store the actual data when loaded
+
+  @override
+  void initState() {
+    super.initState();
+    _loadChecklist();
+  }
+
+  void _loadChecklist() {
+    setState(() {
+      checklistFuture =
+          ApiService().getChecklistById(widget.checklistId).then((checklist) {
+        // Store the checklist when future completes
+        _checklist = checklist;
+        return checklist;
+      });
+    });
+  }
 
   // Modern blue color palette
   static const Color primaryBlue = Color(0xFF1E40AF);
@@ -22,6 +49,19 @@ class ChecklistDetailScreen extends StatelessWidget {
   static const Color darkBlue = Color(0xFF1E3A8A);
   static const Color surfaceBlue = Color(0xFFF0F9FF);
 
+  void _navigateToEdit() {
+    if (_checklist != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ChecklistFormScreen(
+            checklistToEdit: _checklist!,
+          ),
+        ),
+      ).then((_) => _loadChecklist()); // Reload after editing
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context)!;
@@ -30,74 +70,155 @@ class ChecklistDetailScreen extends StatelessWidget {
       appBar: GradientAppBar(
         title: t.safetyChecklistDetails,
         showLoading: false,
-        // actions: [
-        //   Container(
-        //     margin: const EdgeInsets.only(right: 8),
-        //     decoration: BoxDecoration(
-        //       color: lightBlue,
-        //       borderRadius: BorderRadius.circular(12),
-        //     ),
-        //     child: IconButton(
-        //       icon: const Icon(Icons.edit_outlined, size: 20),
-        //       onPressed: () {
-        //         // return null;
-        //         Navigator.push(
-        //           context,
-        //           MaterialPageRoute(
-        //             builder: (context) =>
-        //                 ChecklistFormScreen(checklistToEdit: checklist),
-        //           ),
-        //         );
-        //       },
-        //     ),
-        //   ),
-        // ],
-      ),
-      body: CustomScrollView(
-        slivers: [
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Hero Header Card
-                  _buildHeroCard(),
-
-                  const SizedBox(height: 24),
-
-                  // Quick Stats Row
-                  _buildQuickStats(),
-
-                  const SizedBox(height: 32),
-
-                  // Section Header
-                  _buildSectionHeader(),
-
-                  const SizedBox(height: 16),
-
-                  // Items List
-                  if (checklist.items.isEmpty)
-                    _buildEmptyState()
-                  else
-                    _buildItemsList(context),
-
-                  const SizedBox(height: 24),
-
-                  // Footer Info
-                  _buildFooter(context),
-
-                  const SizedBox(height: 80), // Space for FAB
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 8, top: 8, bottom: 8),
+            child: Container(
+              decoration: BoxDecoration(
+                color: lightBlue,
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                    color: primaryBlue.withOpacity(0.15),
+                    blurRadius: 6,
+                    offset: const Offset(0, 3),
+                  ),
                 ],
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: _navigateToEdit,
+                  borderRadius: BorderRadius.circular(14),
+                  child: const Padding(
+                    padding: EdgeInsets.all(10), // 👈 controls button size
+                    child: Icon(
+                      Icons.edit_outlined,
+                      size: 20,
+                      color: darkBlue,
+                    ),
+                  ),
+                ),
               ),
             ),
           ),
         ],
       ),
+      body: FutureBuilder<ServiceChecker>(
+        future: checklistFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          }
+
+          if (snapshot.hasError) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.error_outline_rounded,
+                    size: 60,
+                    color: Colors.red.shade300,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Error loading checklist',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey.shade700,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    snapshot.error.toString(),
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey.shade500,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton(
+                    onPressed: _loadChecklist,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: primaryBlue,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 32,
+                        vertical: 16,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: const Text('Try Again'),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          if (!snapshot.hasData) {
+            return const Center(
+              child: Text('No data available'),
+            );
+          }
+
+          // Store the loaded checklist
+          _checklist = snapshot.data!;
+          final checklist = _checklist!;
+
+          return CustomScrollView(
+            slivers: [
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Hero Header Card
+                      _buildHeroCard(checklist),
+
+                      const SizedBox(height: 24),
+
+                      // Quick Stats Row
+                      _buildQuickStats(checklist),
+
+                      const SizedBox(height: 32),
+
+                      // Section Header
+                      _buildSectionHeader(checklist),
+
+                      const SizedBox(height: 16),
+
+                      // Items List
+                      if (checklist.items.isEmpty)
+                        _buildEmptyState()
+                      else
+                        _buildItemsList(context, checklist),
+
+                      const SizedBox(height: 24),
+
+                      // Footer Info
+                      _buildFooter(context, checklist),
+
+                      const SizedBox(height: 80),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 
-  Widget _buildHeroCard() {
+  Widget _buildHeroCard(ServiceChecker checklist) {
     final passRate = checklist.passRate;
     final isExcellent = passRate >= 90;
     final isGood = passRate >= 70;
@@ -272,11 +393,6 @@ class ChecklistDetailScreen extends StatelessWidget {
                           color: Colors.white.withOpacity(0.2),
                           margin: const EdgeInsets.symmetric(horizontal: 20),
                         ),
-                        // _buildDateTimeItem(
-                        //   Icons.access_time_rounded,
-                        //   checklist.createdAtFormattedTime,
-                        //   'Created',
-                        // ),
                       ],
                     ),
                   ),
@@ -325,7 +441,7 @@ class ChecklistDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildQuickStats() {
+  Widget _buildQuickStats(ServiceChecker checklist) {
     return Row(
       children: [
         Expanded(
@@ -409,7 +525,7 @@ class ChecklistDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSectionHeader() {
+  Widget _buildSectionHeader(ServiceChecker checklist) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -454,7 +570,7 @@ class ChecklistDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildItemsList(BuildContext context) {
+  Widget _buildItemsList(BuildContext context, ServiceChecker checklist) {
     return ListView.separated(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -684,7 +800,7 @@ class ChecklistDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildFooter(BuildContext context) {
+  Widget _buildFooter(BuildContext context, ServiceChecker checklist) {
     return Column(
       children: [
         // Image Section (if available)
@@ -825,7 +941,7 @@ class ChecklistDetailScreen extends StatelessWidget {
                     bottom: 16,
                     right: 16,
                     child: GestureDetector(
-                      onTap: () => _showFullScreenImage(context),
+                      onTap: () => _showFullScreenImage(context, checklist),
                       child: Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
@@ -883,7 +999,7 @@ class ChecklistDetailScreen extends StatelessWidget {
     );
   }
 
-  void _showFullScreenImage(BuildContext context) {
+  void _showFullScreenImage(BuildContext context, ServiceChecker checklist) {
     if (checklist.imagePath == null || checklist.imagePath!.isEmpty) return;
     final imageUrl = ApiService.homeUrl + checklist.imagePath!;
     showDialog(
@@ -1013,33 +1129,6 @@ class ChecklistDetailScreen extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildExportOption(
-      IconData icon, String label, Color color, VoidCallback onTap) {
-    return ListTile(
-      leading: Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Icon(icon, color: color),
-      ),
-      title: Text(
-        label,
-        style: const TextStyle(
-          fontWeight: FontWeight.w600,
-          fontSize: 16,
-        ),
-      ),
-      trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.shade200),
-      ),
-      onTap: onTap,
     );
   }
 }

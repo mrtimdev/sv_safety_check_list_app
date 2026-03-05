@@ -86,12 +86,38 @@ class _InspectionItemCardState extends State<InspectionItemCard> {
                               decoration: _passed ? null : TextDecoration.none,
                             ),
                           ),
+                          // const SizedBox(height: 8),
+                          // Row(
+                          //   children: [
+                          //     Text(
+                          //         'លក្ខខណ្ឌនេះត្រូវតែមាន ឬត្រូវបានត្រួតពិនិត្យ',
+                          //         style: TextStyle(
+                          //             fontSize: 11,
+                          //             color: Colors.deepOrangeAccent))
+                          //   ],
+                          // ),
+                          if (widget.inspection.isRequired) ...[
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Text(
+                                    'លក្ខខណ្ឌនេះត្រូវតែមាន សូមត្រួតពិនិត្យម្ដងទៀត',
+                                    style: TextStyle(
+                                        fontSize: 11,
+                                        color: Colors.deepOrangeAccent))
+                              ],
+                            ),
+                          ],
                           const SizedBox(height: 8),
                           Row(
                             children: [
                               _buildStatusChip('មាន', true),
                               const SizedBox(width: 8),
                               _buildStatusChip('មិនមាន', false),
+                              // if (!widget.inspection.isRequired) ...[
+                              //   const SizedBox(width: 8),
+                              //   _buildStatusChip('មិនមាន', false),
+                              // ]
                             ],
                           ),
                         ],
@@ -101,7 +127,7 @@ class _InspectionItemCardState extends State<InspectionItemCard> {
                 ),
 
                 // Note field for failed items
-                if (!_passed) ...[
+                if (!_passed && !widget.inspection.isRequired) ...[
                   const SizedBox(height: 16),
                   Container(
                     decoration: BoxDecoration(
@@ -149,7 +175,7 @@ class _InspectionItemCardState extends State<InspectionItemCard> {
                       },
                     ),
                   ),
-                  if (widget.hasError) ...[
+                  if (widget.hasError && !widget.inspection.isRequired) ...[
                     const SizedBox(height: 6),
                     Row(
                       children: [
