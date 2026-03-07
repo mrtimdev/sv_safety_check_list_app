@@ -14,10 +14,10 @@ import '../services/secure_storage.dart';
 class ApiService {
   // static const String homeUrl = 'http://192.168.0.37:8084';
   // static const String baseUrl = 'http://192.168.0.37:8084/api/v1';
-  // static const String homeUrl = 'http://45.201.196.19:8084';
-  // static const String baseUrl = 'http://45.201.196.19:8084/api/v1';
-  static const String homeUrl = 'http://172.20.10.4:8084';
-  static const String baseUrl = 'http://172.20.10.4:8084/api/v1';
+  static const String homeUrl = 'http://45.201.196.19:8084';
+  static const String baseUrl = 'http://45.201.196.19:8084/api/v1';
+  // static const String homeUrl = 'http://172.20.10.4:8084';
+  // static const String baseUrl = 'http://172.20.10.4:8084/api/v1';
   // 'http://45.201.196.19:8084/api/v1';
   static const String categoriesEndpoint = '/categories';
   static const String checklistsEndpoint = '/service-checkers';

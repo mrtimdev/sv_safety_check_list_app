@@ -49,5 +49,10 @@
   "newSafetyCheck": "ការត្រួតពិនិត្យសុវត្ថិភាពថ្មី",
   "safetyChecklistDetails": "ព័ត៌មានលម្អិតបញ្ជីត្រួតពិនិត្យសុវត្ថិភាព",
   "scanPlateNumber": "ស្កេនលេខផ្លាករថយន្ត",
-  "update": "ធ្វើបច្ចុប្បន្នភាព"
+  "update": "ធ្វើបច្ចុប្បន្នភាព",
+  "onlyCreatorCanEditChecklist": "អ្នកបង្កើតបញ្ជីនេះទើបអាចកែប្រែវាបាន។",
+  "checklistCancelled": "បញ្ជីនេះត្រូវបានបោះបង់ ហើយមិនអាចកែប្រែបានទេ។",
+  "checklistUpdated": "បញ្ជីត្រូវបានធ្វើបច្ចុប្បន្នភាពដោយជោគជ័យ។",
+  "checklistCancelledMessage": "បញ្ជីត្រូវបានបោះបង់ដោយជោគជ័យ។",
+  "confirmCancelChecklist": "តើអ្នកពិតជាចង់បោះបង់បញ្ជីនេះមែនទេ?"
 }

@@ -49,5 +49,10 @@
   "newSafetyCheck": "New Safety Check",
   "safetyChecklistDetails": "Safety Checklist Details",
   "scanPlateNumber": "Scan Vehicle Plate Number",
-  "update": "Update"
+  "update": "Update",
+  "onlyCreatorCanEditChecklist": "Only the creator of this checklist can edit it.",
+  "checklistCancelled": "This checklist has been cancelled and cannot be edited.",
+  "checklistUpdated": "Checklist updated successfully.",
+  "checklistCancelledMessage": "Checklist cancelled successfully.",
+  "confirmCancelChecklist": "Are you sure you want to cancel this checklist?"
 }

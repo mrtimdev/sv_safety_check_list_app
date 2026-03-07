@@ -150,4 +150,19 @@ class AppLocalizationsKm extends AppLocalizations {
 
   @override
   String get update => 'ធ្វើបច្ចុប្បន្នភាព';
+
+  @override
+  String get onlyCreatorCanEditChecklist => 'អ្នកបង្កើតបញ្ជីនេះទើបអាចកែប្រែវាបាន។';
+
+  @override
+  String get checklistCancelled => 'បញ្ជីនេះត្រូវបានបោះបង់ ហើយមិនអាចកែប្រែបានទេ។';
+
+  @override
+  String get checklistUpdated => 'បញ្ជីត្រូវបានធ្វើបច្ចុប្បន្នភាពដោយជោគជ័យ។';
+
+  @override
+  String get checklistCancelledMessage => 'បញ្ជីត្រូវបានបោះបង់ដោយជោគជ័យ។';
+
+  @override
+  String get confirmCancelChecklist => 'តើអ្នកពិតជាចង់បោះបង់បញ្ជីនេះមែនទេ?';
 }

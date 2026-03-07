@@ -6,6 +6,7 @@ import 'package:safety_check_list/l10n/app_localizations.dart';
 import 'package:safety_check_list/models/service_checker.dart';
 import 'package:safety_check_list/screens/checklist_form_screen.dart';
 import 'package:safety_check_list/services/api_service.dart';
+import 'package:safety_check_list/services/secure_storage.dart';
 import 'package:safety_check_list/widgets/gradient_app_bar.dart';
 
 class ChecklistDetailScreen extends StatefulWidget {
@@ -22,11 +23,13 @@ class ChecklistDetailScreen extends StatefulWidget {
 
 class _ChecklistDetailScreenState extends State<ChecklistDetailScreen> {
   late Future<ServiceChecker> checklistFuture;
-  ServiceChecker? _checklist; // Store the actual data when loaded
+  ServiceChecker? _checklist;
+  Map<String, dynamic>? _userData;
 
   @override
   void initState() {
     super.initState();
+    _loadUserData();
     _loadChecklist();
   }
 
@@ -51,6 +54,22 @@ class _ChecklistDetailScreenState extends State<ChecklistDetailScreen> {
 
   void _navigateToEdit() {
     if (_checklist != null) {
+      final bool isCreator = _userData != null &&
+          _checklist!.createdBy != null &&
+          _userData!['username'] == _checklist!.createdBy!.username;
+
+      // Check if checklist can be cancelled
+      final bool canCancel = !_checklist!.isCancelled && isCreator;
+      if (!canCancel) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content:
+                Text(AppLocalizations.of(context)!.onlyCreatorCanEditChecklist),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+        return;
+      }
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -58,13 +77,21 @@ class _ChecklistDetailScreenState extends State<ChecklistDetailScreen> {
             checklistToEdit: _checklist!,
           ),
         ),
-      ).then((_) => _loadChecklist()); // Reload after editing
+      ).then((_) => _loadChecklist());
     }
+  }
+
+  Future<void> _loadUserData() async {
+    final userData = await SecureStorage.getUser();
+    setState(() {
+      _userData = userData;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context)!;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: GradientAppBar(

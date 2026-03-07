@@ -376,6 +376,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Update'**
   String get update;
+
+  /// No description provided for @onlyCreatorCanEditChecklist.
+  ///
+  /// In en, this message translates to:
+  /// **'Only the creator of this checklist can edit it.'**
+  String get onlyCreatorCanEditChecklist;
+
+  /// No description provided for @checklistCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'This checklist has been cancelled and cannot be edited.'**
+  String get checklistCancelled;
+
+  /// No description provided for @checklistUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Checklist updated successfully.'**
+  String get checklistUpdated;
+
+  /// No description provided for @checklistCancelledMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Checklist cancelled successfully.'**
+  String get checklistCancelledMessage;
+
+  /// No description provided for @confirmCancelChecklist.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to cancel this checklist?'**
+  String get confirmCancelChecklist;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

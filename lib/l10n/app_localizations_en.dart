@@ -150,4 +150,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get update => 'Update';
+
+  @override
+  String get onlyCreatorCanEditChecklist => 'Only the creator of this checklist can edit it.';
+
+  @override
+  String get checklistCancelled => 'This checklist has been cancelled and cannot be edited.';
+
+  @override
+  String get checklistUpdated => 'Checklist updated successfully.';
+
+  @override
+  String get checklistCancelledMessage => 'Checklist cancelled successfully.';
+
+  @override
+  String get confirmCancelChecklist => 'Are you sure you want to cancel this checklist?';
 }
