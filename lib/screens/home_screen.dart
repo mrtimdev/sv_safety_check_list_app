@@ -520,7 +520,7 @@ class _HomeScreenState extends State<HomeScreen> {
             fontWeight: FontWeight.w700,
             fontSize: 20,
             letterSpacing: 0.5,
-            color: Colors.white,
+            color: darkBlue,
           ),
         ),
         centerTitle: false,
@@ -534,7 +534,7 @@ class _HomeScreenState extends State<HomeScreen> {
             filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.7),
+                color: Colors.white,
                 border: Border(
                   bottom: BorderSide(
                     color: Colors.grey.shade200.withOpacity(0.5),
@@ -900,13 +900,21 @@ class _HomeScreenState extends State<HomeScreen> {
     final statusIcon = _getPassRateIcon(passRate);
     final statusLabel = _getPassRateLabel(passRate);
 
-    // Check if current user is the creator
     final bool isCreator = _userData != null &&
         checklist.createdBy != null &&
         _userData!['username'] == checklist.createdBy!.username;
 
-    // Check if checklist can be cancelled
     final bool canCancel = !checklist.isCancelled && isCreator;
+
+    final bool hasFailedRequiredItems = checklist.items.any((serviceItem) =>
+        serviceItem.notes.any((note) => note.isRequired && !note.passed));
+    final int failedRequiredCount = checklist.items.fold(
+        0,
+        (sum, serviceItem) =>
+            sum +
+            serviceItem.notes
+                .where((note) => note.isRequired && !note.passed)
+                .length);
 
     return GestureDetector(
       onTap: () => _navigateToDetail(checklist),
@@ -916,7 +924,9 @@ class _HomeScreenState extends State<HomeScreen> {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.shade200,
+              color: hasFailedRequiredItems
+                  ? Colors.red.shade100.withOpacity(0.5)
+                  : Colors.grey.shade200,
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -925,9 +935,9 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Top section with status
+            // Status Bar - shows pass rate and status
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
                 color: statusBgColor,
                 borderRadius: const BorderRadius.only(
@@ -937,15 +947,11 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               child: Row(
                 children: [
-                  Icon(
-                    statusIcon,
-                    color: statusColor,
-                    size: 16,
-                  ),
+                  Icon(statusIcon, color: statusColor, size: 14),
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
-                      statusLabel,
+                      '$statusLabel • ${passRate.toStringAsFixed(0)}%',
                       style: TextStyle(
                         color: statusColor,
                         fontSize: 11,
@@ -965,20 +971,20 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
 
-            // Content
+            // Main Content
             Padding(
               padding: const EdgeInsets.all(12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // License Plate
+                  // License Plate Row
                   Row(
                     children: [
                       Expanded(
                         child: Text(
                           checklist.licensePlate,
                           style: const TextStyle(
-                            fontSize: 15,
+                            fontSize: 16,
                             fontWeight: FontWeight.bold,
                             color: darkBlue,
                           ),
@@ -986,39 +992,24 @@ class _HomeScreenState extends State<HomeScreen> {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: statusBgColor,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          '${passRate.toStringAsFixed(0)}%',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: statusColor,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
                     ],
                   ),
 
                   const SizedBox(height: 8),
 
-                  // Date
+                  // Date Row
                   Row(
                     children: [
                       Icon(Icons.calendar_today_rounded,
-                          size: 10, color: Colors.grey.shade500),
+                          size: 12, color: Colors.grey.shade500),
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(
                           checklist.createdAtFormattedTime,
                           style: TextStyle(
-                            fontSize: 10,
+                            fontSize: 11,
                             color: Colors.grey.shade600,
+                            fontWeight: FontWeight.w500,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -1027,7 +1018,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ],
                   ),
 
-                  // Created By
+                  // Created By Row
                   if (checklist.createdBy != null) ...[
                     const SizedBox(height: 4),
                     Row(
@@ -1036,23 +1027,26 @@ class _HomeScreenState extends State<HomeScreen> {
                           isCreator
                               ? Icons.person_rounded
                               : Icons.person_outline_rounded,
-                          size: 10,
+                          size: 12,
                           color: isCreator ? primaryBlue : Colors.grey.shade500,
                         ),
                         const SizedBox(width: 4),
                         Expanded(
                           child: Text(
                             isCreator
-                                ? 'You'
-                                : '${checklist.createdBy!.displayName}',
+                                ? 'បង្កើតឡើងដោយ: អ្នក'
+                                : 'បង្កើតឡើងដោយ: ${checklist.createdBy!.displayName}',
                             style: TextStyle(
-                              fontSize: 9,
+                              fontSize: 10,
                               color: isCreator
                                   ? primaryBlue
                                   : Colors.grey.shade600,
                               fontWeight: isCreator
                                   ? FontWeight.w500
                                   : FontWeight.normal,
+                              fontStyle: isCreator
+                                  ? FontStyle.normal
+                                  : FontStyle.italic,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -1062,35 +1056,115 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ],
 
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
 
-                  // Stats
+                  // Item Summary Chips
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
-                      _buildGridStat(
-                        Icons.check_rounded,
-                        '${checklist.checkedCount}',
-                        Colors.green,
-                      ),
-                      _buildGridStat(
-                        Icons.close_rounded,
-                        '${checklist.notCheckedCount}',
-                        Colors.red,
-                      ),
-                      if (checklist.itemNoteCount > 0)
-                        _buildGridStat(
-                          Icons.note_alt_rounded,
-                          '${checklist.itemNoteCount}',
-                          Colors.orange,
+                      Expanded(
+                        child: _buildSummaryChip(
+                          Icons.check_rounded,
+                          '${checklist.checkedCount} មាន',
+                          Colors.green,
+                          isGrid: true,
                         ),
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: _buildSummaryChip(
+                          Icons.close_rounded,
+                          '${checklist.notCheckedCount} មិនមាន',
+                          Colors.red,
+                          isGrid: true,
+                        ),
+                      ),
                     ],
                   ),
+
+                  // Failed Required Items Warning (if any)
+                  if (hasFailedRequiredItems) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: Colors.red.shade200,
+                          width: 0.5,
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '⛔ មិនអាចចូលឬកឡើងទំនិញ',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.red.shade800,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            failedRequiredCount == 1
+                                ? '១ លក្ខខណ្ឌត្រូវតែមាន'
+                                : '$failedRequiredCount លក្ខខណ្ឌត្រូវតែមាន',
+                            style: TextStyle(
+                              fontSize: 9,
+                              color: Colors.red.shade600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildSummaryChip(IconData icon, String label, Color color,
+      {bool isGrid = false}) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: isGrid ? 6 : 10,
+        vertical: isGrid ? 4 : 6,
+      ),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(isGrid ? 12 : 20),
+        border: Border.all(
+          color: color.withOpacity(0.3),
+          width: 0.5,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: isGrid ? 12 : 14,
+            color: color,
+          ),
+          SizedBox(width: isGrid ? 2 : 4),
+          Flexible(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: isGrid ? 9 : 11,
+                color: color,
+                fontWeight: FontWeight.w600,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1715,13 +1789,21 @@ class _HomeScreenState extends State<HomeScreen> {
     final statusIcon = _getPassRateIcon(passRate);
     final statusLabel = _getPassRateLabel(passRate);
 
-    // Check if current user is the creator of this checklist
     final bool isCreator = _userData != null &&
         checklist.createdBy != null &&
         _userData!['username'] == checklist.createdBy!.username;
 
-    // Check if checklist can be cancelled (not already cancelled and user is creator)
     final bool canCancel = !checklist.isCancelled && isCreator;
+
+    final bool hasFailedRequiredItems = checklist.items.any((serviceItem) =>
+        serviceItem.notes.any((note) => note.isRequired && !note.passed));
+    final int failedRequiredCount = checklist.items.fold(
+        0,
+        (sum, serviceItem) =>
+            sum +
+            serviceItem.notes
+                .where((note) => note.isRequired && !note.passed)
+                .length);
 
     return Dismissible(
       key: Key('checklist_${checklist.id}'),
@@ -1747,213 +1829,295 @@ class _HomeScreenState extends State<HomeScreen> {
         }
         return await _showCancelDialog(checklist);
       },
-      child: GestureDetector(
-        onTap: () => _navigateToDetail(checklist),
-        child: Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.grey.shade200,
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                // Status Indicator with Progress Ring and Icon
-                Stack(
-                  alignment: Alignment.center,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: hasFailedRequiredItems
+                  ? Colors.red.shade100.withOpacity(0.5)
+                  : Colors.grey.shade200,
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: GestureDetector(
+          onTap: () => _navigateToDetail(checklist),
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    SizedBox(
-                      width: 56,
-                      height: 56,
-                      child: CircularProgressIndicator(
-                        value: passRate / 100,
-                        strokeWidth: 4,
-                        backgroundColor: Colors.grey.shade100,
-                        valueColor: AlwaysStoppedAnimation<Color>(statusColor),
-                      ),
+                    Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        SizedBox(
+                          width: 56,
+                          height: 56,
+                          child: CircularProgressIndicator(
+                            value: passRate / 100,
+                            strokeWidth: 4,
+                            backgroundColor: Colors.grey.shade100,
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(statusColor),
+                          ),
+                        ),
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: statusBgColor,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            statusIcon,
+                            color: statusColor,
+                            size: 22,
+                          ),
+                        ),
+                      ],
                     ),
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: statusBgColor,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        statusIcon,
-                        color: statusColor,
-                        size: 22,
+                    const SizedBox(width: 16),
+
+                    // Details
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        checklist.licensePlate,
+                                        style: const TextStyle(
+                                          fontSize: 17,
+                                          fontWeight: FontWeight.bold,
+                                          color: darkBlue,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: statusBgColor,
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      '${passRate.toStringAsFixed(0)}%',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: statusColor,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 2),
+                                    Text(
+                                      '• $statusLabel',
+                                      style: TextStyle(
+                                        fontSize: 9,
+                                        color: statusColor,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Container(
+                                child: Icon(
+                                  Icons.arrow_forward_ios_rounded,
+                                  color: Colors.grey.shade400,
+                                  size: 16,
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 8),
+
+                          // Date Row
+                          Row(
+                            children: [
+                              Icon(Icons.calendar_today_rounded,
+                                  size: 14, color: Colors.grey.shade500),
+                              const SizedBox(width: 6),
+                              Text(
+                                checklist.createdAtFormattedTime,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.grey.shade600,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              if (!canCancel &&
+                                  checklist.createdBy != null) ...[
+                                const SizedBox(width: 8),
+                                Icon(
+                                  Icons.lock_outline_rounded,
+                                  size: 12,
+                                  color: Colors.grey.shade400,
+                                ),
+                              ],
+                            ],
+                          ),
+
+                          // Created By Row
+                          if (checklist.createdBy != null) ...[
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                Icon(
+                                  isCreator
+                                      ? Icons.person_rounded
+                                      : Icons.person_outline_rounded,
+                                  size: 14,
+                                  color: isCreator
+                                      ? primaryBlue
+                                      : Colors.grey.shade500,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  isCreator
+                                      ? 'បង្កើតឡើងដោយ: អ្នក'
+                                      : 'បង្កើតឡើងដោយ: ${checklist.createdBy!.displayName}',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: isCreator
+                                        ? primaryBlue
+                                        : Colors.grey.shade600,
+                                    fontWeight: isCreator
+                                        ? FontWeight.w500
+                                        : FontWeight.normal,
+                                    fontStyle: isCreator
+                                        ? FontStyle.normal
+                                        : FontStyle.italic,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+
+                          const SizedBox(height: 12),
+
+                          // Item Summary Chips
+                          Row(
+                            children: [
+                              _buildSummaryChip(
+                                Icons.check_rounded,
+                                '${checklist.checkedCount} មាន',
+                                Colors.green,
+                              ),
+                              const SizedBox(width: 8),
+                              _buildSummaryChip(
+                                Icons.close_rounded,
+                                '${checklist.notCheckedCount} មិនមាន',
+                                Colors.red,
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(width: 16),
+              ),
 
-                // Details
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+              // Warning Row at Bottom (only if has failed required items)
+              if (hasFailedRequiredItems)
+                Container(
+                  width: double.infinity,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: const BorderRadius.only(
+                      bottomLeft: Radius.circular(20),
+                      bottomRight: Radius.circular(20),
+                    ),
+                  ),
+                  child: Row(
                     children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    checklist.licensePlate,
-                                    style: const TextStyle(
-                                      fontSize: 17,
-                                      fontWeight: FontWeight.bold,
-                                      color: darkBlue,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: statusBgColor,
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  '${passRate.toStringAsFixed(0)}%',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: statusColor,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                                const SizedBox(width: 2),
-                                Text(
-                                  '• $statusLabel',
-                                  style: TextStyle(
-                                    fontSize: 9,
-                                    color: statusColor,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            child: Icon(
-                              Icons.arrow_forward_ios_rounded,
-                              color: Colors.grey.shade400,
-                              size: 16,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-
-                      // Date Row
-                      Row(
-                        children: [
-                          Icon(Icons.calendar_today_rounded,
-                              size: 14, color: Colors.grey.shade500),
-                          const SizedBox(width: 6),
-                          Text(
-                            checklist.createdAtFormattedTime,
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.grey.shade600,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          if (!canCancel && checklist.createdBy != null) ...[
-                            const SizedBox(width: 8),
-                            Icon(
-                              Icons.lock_outline_rounded,
-                              size: 12,
-                              color: Colors.grey.shade400,
-                            ),
-                          ],
-                        ],
-                      ),
-
-                      // Created By Row
-                      if (checklist.createdBy != null) ...[
-                        const SizedBox(height: 4),
-                        Row(
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Icon(
-                              isCreator
-                                  ? Icons.person_rounded
-                                  : Icons.person_outline_rounded,
-                              size: 14,
-                              color: isCreator
-                                  ? primaryBlue
-                                  : Colors.grey.shade500,
-                            ),
-                            const SizedBox(width: 6),
                             Text(
-                              isCreator
-                                  ? 'បង្កើតឡើងដោយ: អ្នក'
-                                  : 'បង្កើតឡើងដោយ: ${checklist.createdBy!.displayName}',
+                              'ឡាននេះមិនអាចចូលឬកឡើងទំនិញបាននោះទេ',
                               style: TextStyle(
-                                fontSize: 12,
-                                color: isCreator
-                                    ? primaryBlue
-                                    : Colors.grey.shade600,
-                                fontWeight: isCreator
-                                    ? FontWeight.w500
-                                    : FontWeight.normal,
-                                fontStyle: isCreator
-                                    ? FontStyle.normal
-                                    : FontStyle.italic,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.red.shade800,
+                              ),
+                            ),
+                            Text(
+                              failedRequiredCount == 1
+                                  ? 'មាន ១ លក្ខខណ្ឌត្រូវតែមាន សូមត្រួតពិនិត្យម្ដងទៀត'
+                                  : 'មាន $failedRequiredCount លក្ខខណ្ឌត្រូវតែមាន សូមត្រួតពិនិត្យម្ដងទៀត',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.red.shade600,
                               ),
                             ),
                           ],
                         ),
-                      ],
-
-                      const SizedBox(height: 12),
-
-                      // Item Summary Chips
-                      Row(
-                        children: [
-                          _buildSummaryChip(
-                            Icons.check_rounded,
-                            '${checklist.checkedCount} មាន',
-                            Colors.green,
-                          ),
-                          const SizedBox(width: 8),
-                          _buildSummaryChip(
-                            Icons.close_rounded,
-                            '${checklist.notCheckedCount} មិនមាន',
-                            Colors.red,
-                          ),
-                          // if (checklist.itemNoteCount > 0) ...[
-                          //   const SizedBox(width: 8),
-                          //   _buildSummaryChip(
-                          //     Icons.note_alt_rounded,
-                          //     '${checklist.itemNoteCount} ចំនួនសំណួរ',
-                          //     Colors.grey,
-                          //   ),
-                          // ],
-                        ],
                       ),
+                      // Edit Button (positioned at bottom right)
+                      if (isCreator)
+                        Positioned(
+                          bottom: 8,
+                          right: 16,
+                          child: GestureDetector(
+                            onTap: () {
+                              // Navigate to edit form
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ChecklistFormScreen(
+                                    checklistToEdit: checklist,
+                                  ),
+                                ),
+                              );
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: primaryBlue,
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: primaryBlue.withOpacity(0.3),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: const Icon(
+                                Icons.edit_rounded,
+                                color: Colors.white,
+                                size: 18,
+                              ),
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ),
-              ],
-            ),
+            ],
           ),
         ),
       ),
@@ -2374,32 +2538,6 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       }
     }
-  }
-
-  Widget _buildSummaryChip(IconData icon, String label, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.2)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 12, color: color),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              color: color,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   Widget _buildLoadingMoreIndicator() {

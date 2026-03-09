@@ -49,7 +49,6 @@ class _ChecklistFormScreenState extends State<ChecklistFormScreen> {
 
   // Track which items need note validation
   final Map<int, bool> _noteValidationErrors = {};
-  final Map<int, bool> _itemRequiredErrors = {};
 
   late TextEditingController _licensePlateController;
 
@@ -257,17 +256,12 @@ class _ChecklistFormScreenState extends State<ChecklistFormScreen> {
 
     // Check for failed items without notes
     _noteValidationErrors.clear();
-    _itemRequiredErrors.clear();
 
     _inspections.forEach((categoryId, inspections) {
       for (var inspection in inspections) {
         if (!inspection.passed &&
-            (inspection.note == null || inspection.note!.trim().isEmpty) &&
-            !inspection.isRequired) {
+            (inspection.note == null || inspection.note!.trim().isEmpty)) {
           _noteValidationErrors[inspection.itemId] = true;
-          isValid = false;
-        } else if (!inspection.passed && inspection.isRequired) {
-          _itemRequiredErrors[inspection.itemId] = true;
           isValid = false;
         }
       }
@@ -295,29 +289,6 @@ class _ChecklistFormScreenState extends State<ChecklistFormScreen> {
         ),
       );
     }
-
-    if (!isValid && _itemRequiredErrors.isNotEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.warning_amber, color: Colors.white),
-              const SizedBox(width: 8),
-              const Expanded(
-                child: Text(
-                    'សូមពិនិត្យមើលម្តងទៀត ព្រោះលក្ខខណ្ឌខ្លះត្រូវតែមានមុនពេលបញ្ជូន'),
-              ),
-            ],
-          ),
-          backgroundColor: Colors.orange.shade700,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-        ),
-      );
-    }
-
     return isValid;
   }
 
@@ -522,14 +493,6 @@ class _ChecklistFormScreenState extends State<ChecklistFormScreen> {
           } else if (passed) {
             _noteValidationErrors.remove(itemId);
           }
-          // handle required item validation
-          if (!passed && inspections[index].isRequired) {
-            _itemRequiredErrors.remove(itemId);
-          } else if (!passed && (note == null || note.isEmpty)) {
-            _itemRequiredErrors[itemId] = true;
-          } else if (passed) {
-            _itemRequiredErrors.remove(itemId);
-          }
         }
       }
     });
@@ -554,46 +517,56 @@ class _ChecklistFormScreenState extends State<ChecklistFormScreen> {
                 .length);
   }
 
+  // Modern blue color palette
+  static const Color primaryBlue = Color(0xFF1E40AF);
+  static const Color secondaryBlue = Color(0xFF3B82F6);
+  static const Color accentBlue = Color(0xFF60A5FA);
+  static const Color lightBlue = Color(0xFFDBEAFE);
+  static const Color darkBlue = Color(0xFF1E3A8A);
+  static const Color surfaceBlue = Color(0xFFF0F9FF);
+
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context)!;
-    if (_loadingDeviceInfo) {
-      return Scaffold(
-        appBar: GradientAppBar(
-          title: _editingId != null ? t.editSafetyCheck : t.newSafetyCheck,
-          showLoading: _isLoading,
-        ),
-        body: const Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircularProgressIndicator(color: Color(0xFF1E3A8A)),
-              SizedBox(height: 16),
-              Text('Loading device information...'),
-            ],
-          ),
-        ),
-      );
-    }
 
     return Scaffold(
       appBar: GradientAppBar(
         title: _editingId != null ? t.editSafetyCheck : t.newSafetyCheck,
         showLoading: _isLoading,
-        // Optional: Add custom actions
         actions: [
-          if (_isLoading)
-            const Padding(
-              padding: EdgeInsets.all(16.0),
-              child: SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1E3A8A)),
+          Padding(
+            padding: const EdgeInsets.only(right: 16, top: 8, bottom: 8),
+            child: Container(
+              decoration: BoxDecoration(
+                color: lightBlue,
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                    color: primaryBlue.withOpacity(0.15),
+                    blurRadius: 6,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: _submitForm,
+                  borderRadius: BorderRadius.circular(14),
+                  child: Padding(
+                    padding: EdgeInsets.all(10),
+                    child: Icon(
+                      _editingId != null
+                          ? Icons.edit_outlined
+                          : Icons.check_circle,
+                      size: 20,
+                      color: darkBlue,
+                    ),
+                  ),
                 ),
               ),
             ),
+          ),
         ],
       ),
       body: _isLoading && _categories.isEmpty

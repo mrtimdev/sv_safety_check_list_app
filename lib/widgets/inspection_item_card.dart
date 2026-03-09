@@ -100,8 +100,7 @@ class _InspectionItemCardState extends State<InspectionItemCard> {
                             const SizedBox(height: 8),
                             Row(
                               children: [
-                                Text(
-                                    'លក្ខខណ្ឌនេះត្រូវតែមាន សូមត្រួតពិនិត្យម្ដងទៀត',
+                                Text('លក្ខខណ្ឌនេះត្រូវតែមាន',
                                     style: TextStyle(
                                         fontSize: 11,
                                         color: Colors.deepOrangeAccent))
@@ -127,7 +126,7 @@ class _InspectionItemCardState extends State<InspectionItemCard> {
                 ),
 
                 // Note field for failed items
-                if (!_passed && !widget.inspection.isRequired) ...[
+                if (!_passed) ...[
                   const SizedBox(height: 16),
                   Container(
                     decoration: BoxDecoration(
