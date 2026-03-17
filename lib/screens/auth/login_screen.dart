@@ -54,7 +54,8 @@ class _LoginScreenState extends State<LoginScreen> {
         if (mounted) {
           // Save token
           if (response.token != null) {
-            await SecureStorage.saveToken(response.token!);
+            await SecureStorage.saveToken(response.token!,
+                expiresInSeconds: response.expiresIn!);
           }
 
           // Save refresh token if provided

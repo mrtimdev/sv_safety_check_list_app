@@ -26,17 +26,21 @@ class _CategoryCardState extends State<CategoryCard> {
 
   @override
   Widget build(BuildContext context) {
-    // Calculate category stats
+    // Calculate category stats - handle null values
     int totalItems = widget.inspections.length;
-    int failedItems = widget.inspections.where((i) => !i.passed).length;
+    int evaluatedItems = widget.inspections.where((i) => i.isEvaluated).length;
+    int failedItems = widget.inspections.where((i) => i.isFailed).length;
     int itemsWithNotes = widget.inspections
-        .where((i) => !i.passed && i.note != null && i.note!.isNotEmpty)
+        .where((i) => i.isFailed && i.note != null && i.note!.isNotEmpty)
         .length;
+    int unevaluatedItems = totalItems - evaluatedItems;
 
     // Debug print to verify data
     print('📁 Category: ${widget.category.khmerName} - ${widget.category.id}');
     print('   Total items: $totalItems');
+    print('   Evaluated items: $evaluatedItems');
     print('   Failed items: $failedItems');
+    print('   Unevaluated items: $unevaluatedItems');
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -70,16 +74,22 @@ class _CategoryCardState extends State<CategoryCard> {
               ),
               child: Row(
                 children: [
-                  // Category Icon - Always visible
+                  // Category Icon - with unevaluated indicator
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF1E3A8A).withOpacity(0.1),
+                      color: unevaluatedItems > 0
+                          ? Colors.orange.withOpacity(0.1)
+                          : const Color(0xFF1E3A8A).withOpacity(0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(
-                      Icons.category,
-                      color: Color(0xFF1E3A8A),
+                    child: Icon(
+                      unevaluatedItems > 0
+                          ? Icons.help_outline
+                          : Icons.category,
+                      color: unevaluatedItems > 0
+                          ? Colors.orange
+                          : const Color(0xFF1E3A8A),
                       size: 20,
                     ),
                   ),
@@ -97,10 +107,12 @@ class _CategoryCardState extends State<CategoryCard> {
                           widget.category.khmerName.isNotEmpty
                               ? widget.category.khmerName
                               : 'Unnamed Category',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.w600,
                             fontSize: 16,
-                            color: Color(0xFF1E3A8A),
+                            color: unevaluatedItems > 0
+                                ? Colors.orange.shade800
+                                : const Color(0xFF1E3A8A),
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -109,7 +121,9 @@ class _CategoryCardState extends State<CategoryCard> {
                         const SizedBox(height: 4),
 
                         // Stats Row
-                        Row(
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 4,
                           children: [
                             // Total items
                             Container(
@@ -129,16 +143,46 @@ class _CategoryCardState extends State<CategoryCard> {
                               ),
                             ),
 
+                            // Unevaluated items indicator
+                            if (unevaluatedItems > 0) ...[
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.orange.shade50,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.help,
+                                      size: 10,
+                                      color: Colors.orange.shade700,
+                                    ),
+                                    const SizedBox(width: 2),
+                                    Text(
+                                      '$unevaluatedItems pending',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: Colors.orange.shade700,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+
+                            // Failed items
                             if (failedItems > 0) ...[
-                              const SizedBox(width: 6),
-                              // Failed items
                               Container(
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 8, vertical: 2),
                                 decoration: BoxDecoration(
                                   color: failedItems == itemsWithNotes
                                       ? Colors.green.shade50
-                                      : Colors.orange.shade50,
+                                      : Colors.red.shade50,
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Row(
@@ -151,7 +195,7 @@ class _CategoryCardState extends State<CategoryCard> {
                                       size: 10,
                                       color: failedItems == itemsWithNotes
                                           ? Colors.green.shade700
-                                          : Colors.orange.shade700,
+                                          : Colors.red.shade700,
                                     ),
                                     const SizedBox(width: 2),
                                     Text(
@@ -160,7 +204,7 @@ class _CategoryCardState extends State<CategoryCard> {
                                         fontSize: 11,
                                         color: failedItems == itemsWithNotes
                                             ? Colors.green.shade700
-                                            : Colors.orange.shade700,
+                                            : Colors.red.shade700,
                                         fontWeight: FontWeight.w500,
                                       ),
                                     ),

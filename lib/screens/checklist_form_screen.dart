@@ -173,7 +173,7 @@ class _ChecklistFormScreenState extends State<ChecklistFormScreen> {
             .map((item) => Inspection(
                 itemId: item.id,
                 itemName: item.khmerName,
-                passed: true,
+                passed: null,
                 note: null,
                 isRequired: item.isRequired))
             .toList();
@@ -254,30 +254,59 @@ class _ChecklistFormScreenState extends State<ChecklistFormScreen> {
   bool _validateForm() {
     bool isValid = _formKey.currentState!.validate();
 
-    // Check for failed items without notes
+    // Clear previous validation errors
     _noteValidationErrors.clear();
+
+    // Track unevaluated required items
+    final List<String> unevaluatedRequiredItems = [];
 
     _inspections.forEach((categoryId, inspections) {
       for (var inspection in inspections) {
-        if (!inspection.passed &&
-            (inspection.note == null || inspection.note!.trim().isEmpty)) {
-          _noteValidationErrors[inspection.itemId] = true;
+        // Check if item has been evaluated (user clicked Yes or No)
+        if (inspection.passed == null) {
+          // Item not evaluated yet
+          if (inspection.isRequired) {
+            unevaluatedRequiredItems.add(inspection.itemName);
+          }
           isValid = false;
+        } else if (!inspection.passed!) {
+          // Item is failed - check for note
+          if (inspection.note == null || inspection.note!.trim().isEmpty) {
+            _noteValidationErrors[inspection.itemId] = true;
+            isValid = false;
+          }
         }
+        // If passed is true, no additional validation needed
       }
     });
 
     setState(() {});
 
-    if (!isValid && _noteValidationErrors.isNotEmpty) {
+    if (!isValid) {
+      String message;
+      if (unevaluatedRequiredItems.isNotEmpty) {
+        message =
+            'សូមវាយតម្លៃធាតុដែលតម្រូវទាំងអស់ (ចុច ត្រឹមត្រូវ ឬ មិនត្រឹមត្រូវ)';
+        if (unevaluatedRequiredItems.length <= 3) {
+          message += ': ${unevaluatedRequiredItems.join(", ")}';
+        }
+      } else if (_noteValidationErrors.isNotEmpty) {
+        message = 'សូមបំពេញមូលហេតុសម្រាប់ធាតុដែលមិនត្រឹមត្រូវទាំងអស់';
+      } else {
+        message = 'សូមវាយតម្លៃធាតុទាំងអស់ (ចុច ត្រឹមត្រូវ ឬ មិនត្រឹមត្រូវ)';
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Row(
             children: [
               const Icon(Icons.warning_amber, color: Colors.white),
               const SizedBox(width: 8),
-              const Expanded(
-                child: Text('Please add notes for all failed items'),
+              Expanded(
+                child: Text(
+                  message,
+                  style: const TextStyle(fontSize: 13),
+                ),
               ),
             ],
           ),
@@ -286,9 +315,11 @@ class _ChecklistFormScreenState extends State<ChecklistFormScreen> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
           ),
+          duration: const Duration(seconds: 4),
         ),
       );
     }
+
     return isValid;
   }
 
@@ -313,9 +344,7 @@ class _ChecklistFormScreenState extends State<ChecklistFormScreen> {
           itemsData.add({
             'itemId': inspection.itemId,
             'passed': inspection.passed,
-            'note': inspection.passed
-                ? null
-                : inspection.note, // Only send note if failed
+            'note': inspection.passed == true ? null : inspection.note,
           });
         }
 
@@ -502,9 +531,14 @@ class _ChecklistFormScreenState extends State<ChecklistFormScreen> {
     return _inspections.values.fold(0, (sum, list) => sum + list.length);
   }
 
+  int get _evaluatedItems {
+    return _inspections.values.fold(
+        0, (sum, list) => sum + list.where((i) => i.passed != null).length);
+  }
+
   int get _failedItems {
-    return _inspections.values
-        .fold(0, (sum, list) => sum + list.where((i) => !i.passed).length);
+    return _inspections.values.fold(
+        0, (sum, list) => sum + list.where((i) => i.passed == false).length);
   }
 
   int get _itemsWithNotes {
@@ -513,7 +547,8 @@ class _ChecklistFormScreenState extends State<ChecklistFormScreen> {
         (sum, list) =>
             sum +
             list
-                .where((i) => !i.passed && i.note != null && i.note!.isNotEmpty)
+                .where((i) =>
+                    i.passed == false && i.note != null && i.note!.isNotEmpty)
                 .length);
   }
 
@@ -641,6 +676,9 @@ class _ChecklistFormScreenState extends State<ChecklistFormScreen> {
   }
 
   Widget _buildHeader() {
+    final totalEvaluated = _inspections.values.fold(
+        0, (sum, list) => sum + list.where((i) => i.passed != null).length);
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
@@ -679,7 +717,7 @@ class _ChecklistFormScreenState extends State<ChecklistFormScreen> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '$_failedItems of $_totalItems items failed',
+                  '$totalEvaluated of $_totalItems items evaluated',
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,

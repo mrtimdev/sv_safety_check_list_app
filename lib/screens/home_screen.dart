@@ -160,11 +160,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
     try {
       final response = await _apiService.getChecklists(
-        page: _currentPage,
-        limit: 20,
-        dateFilter: _selectedFilter != 'all' ? _selectedFilter : null,
-        deviceInfo: _deviceInfo!,
-      );
+          page: _currentPage,
+          limit: 20,
+          dateFilter: _selectedFilter != 'all' ? _selectedFilter : null,
+          deviceInfo: _deviceInfo!,
+          context: context);
 
       setState(() {
         if (refresh || _currentPage == 1) {
@@ -2019,13 +2019,13 @@ class _HomeScreenState extends State<HomeScreen> {
                             children: [
                               _buildSummaryChip(
                                 Icons.check_rounded,
-                                '${checklist.checkedCount} មាន',
+                                '${checklist.checkedCount} ត្រឹមត្រូវ',
                                 Colors.green,
                               ),
                               const SizedBox(width: 8),
                               _buildSummaryChip(
                                 Icons.close_rounded,
-                                '${checklist.notCheckedCount} មិនមាន',
+                                '${checklist.notCheckedCount} មិនត្រឹមត្រូវ',
                                 Colors.red,
                               ),
                             ],

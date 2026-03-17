@@ -20,7 +20,7 @@ class InspectionItemCard extends StatefulWidget {
 }
 
 class _InspectionItemCardState extends State<InspectionItemCard> {
-  late bool _passed;
+  late bool? _passed;
   late TextEditingController _noteController;
   late FocusNode _noteFocusNode;
 
@@ -47,8 +47,12 @@ class _InspectionItemCardState extends State<InspectionItemCard> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isEvaluated = _passed != null;
+    final bool isPassed = _passed == true;
+    final bool isFailed = _passed == false;
+
     return Container(
-      color: _passed ? null : (widget.hasError ? Colors.red.shade50 : null),
+      color: isFailed ? (widget.hasError ? Colors.red.shade50 : null) : null,
       child: Column(
         children: [
           Padding(
@@ -59,13 +63,19 @@ class _InspectionItemCardState extends State<InspectionItemCard> {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Status icon
+                    // Status icon - show different icon for unevaluated
                     Container(
                       margin: const EdgeInsets.only(top: 2),
                       child: Icon(
-                        _passed ? Icons.check_circle_outline : Icons.close,
+                        !isEvaluated
+                            ? Icons.help_outline
+                            : (isPassed
+                                ? Icons.check_circle_outline
+                                : Icons.close),
                         size: 18,
-                        color: _passed ? Colors.green : Colors.red,
+                        color: !isEvaluated
+                            ? Colors.grey
+                            : (isPassed ? Colors.green : Colors.red),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -80,43 +90,36 @@ class _InspectionItemCardState extends State<InspectionItemCard> {
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
-                              color: _passed
-                                  ? Colors.grey.shade800
-                                  : Colors.grey.shade900,
-                              decoration: _passed ? null : TextDecoration.none,
+                              color: !isEvaluated
+                                  ? Colors.grey.shade500
+                                  : (isPassed
+                                      ? Colors.grey.shade800
+                                      : Colors.grey.shade900),
                             ),
                           ),
-                          // const SizedBox(height: 8),
-                          // Row(
-                          //   children: [
-                          //     Text(
-                          //         'លក្ខខណ្ឌនេះត្រូវតែមាន ឬត្រូវបានត្រួតពិនិត្យ',
-                          //         style: TextStyle(
-                          //             fontSize: 11,
-                          //             color: Colors.deepOrangeAccent))
-                          //   ],
-                          // ),
                           if (widget.inspection.isRequired) ...[
                             const SizedBox(height: 8),
-                            Row(
-                              children: [
-                                Text('លក្ខខណ្ឌនេះត្រូវតែមាន',
-                                    style: TextStyle(
-                                        fontSize: 11,
-                                        color: Colors.deepOrangeAccent))
-                              ],
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.deepOrange.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Text(
+                                'លក្ខខណ្ឌនេះត្រូវតែមាន',
+                                style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.deepOrangeAccent),
+                              ),
                             ),
                           ],
                           const SizedBox(height: 8),
                           Row(
                             children: [
-                              _buildStatusChip('មាន', true),
+                              _buildStatusChip('ត្រឹមត្រូវ', true),
                               const SizedBox(width: 8),
-                              _buildStatusChip('មិនមាន', false),
-                              // if (!widget.inspection.isRequired) ...[
-                              //   const SizedBox(width: 8),
-                              //   _buildStatusChip('មិនមាន', false),
-                              // ]
+                              _buildStatusChip('មិនត្រឹមត្រូវ', false),
                             ],
                           ),
                         ],
@@ -126,18 +129,16 @@ class _InspectionItemCardState extends State<InspectionItemCard> {
                 ),
 
                 // Note field for failed items
-                if (!_passed) ...[
+                if (isFailed) ...[
                   const SizedBox(height: 16),
                   Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(10),
-                      // border: Border.all(
-                      //   color:
-                      //       widget.hasError ? Colors.red : Colors.grey.shade300,
-                      //   width: widget.hasError ? 1.5 : 1,
-                      // ),
-                    ),
+                    // decoration: BoxDecoration(
+                    //   color: Colors.white,
+                    //   borderRadius: BorderRadius.circular(10),
+                    //   border: widget.hasError
+                    //       ? Border.all(color: Colors.red.shade300)
+                    //       : null,
+                    // ),
                     child: TextField(
                       controller: _noteController,
                       focusNode: _noteFocusNode,
@@ -154,7 +155,7 @@ class _InspectionItemCardState extends State<InspectionItemCard> {
                                 icon: const Icon(Icons.clear, size: 16),
                                 onPressed: () {
                                   _noteController.clear();
-                                  widget.onChanged(_passed, null);
+                                  widget.onChanged(false, null);
                                 },
                               )
                             : null,
@@ -167,14 +168,11 @@ class _InspectionItemCardState extends State<InspectionItemCard> {
                       maxLines: 2,
                       minLines: 1,
                       onChanged: (value) {
-                        widget.onChanged(_passed, value);
-                      },
-                      onSubmitted: (value) {
-                        widget.onChanged(_passed, value);
+                        widget.onChanged(false, value);
                       },
                     ),
                   ),
-                  if (widget.hasError && !widget.inspection.isRequired) ...[
+                  if (widget.hasError) ...[
                     const SizedBox(height: 6),
                     Row(
                       children: [
@@ -182,18 +180,52 @@ class _InspectionItemCardState extends State<InspectionItemCard> {
                         Icon(Icons.warning_amber,
                             size: 12, color: Colors.red.shade700),
                         const SizedBox(width: 4),
-                        Text(
-                          'សូមផ្តល់ហេតុផលខ្លះផងសម្រាប់ការត្រួតពិនិត្យនេះ',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Colors.red.shade700,
-                            fontWeight: FontWeight.w500,
+                        Expanded(
+                          child: Text(
+                            'សូមផ្តល់ហេតុផលសម្រាប់ការត្រួតពិនិត្យនេះ',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.red.shade700,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                         ),
                       ],
                     ),
                   ],
                 ],
+
+                // Show hint for unevaluated items
+                // if (!isEvaluated) ...[
+                //   const SizedBox(height: 8),
+                //   Container(
+                //     padding:
+                //         const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                //     decoration: BoxDecoration(
+                //       color: Colors.grey.shade100,
+                //       borderRadius: BorderRadius.circular(8),
+                //     ),
+                //     child: Row(
+                //       children: [
+                //         Icon(Icons.info_outline,
+                //             size: 14, color: Colors.grey.shade600),
+                //         const SizedBox(width: 6),
+                //         Expanded(
+                //           child: Text(
+                //             widget.inspection.isRequired
+                //                 ? 'សូមជ្រើសរើស ត្រឹមត្រូវ ឬ មិនត្រឹមត្រូវ (តម្រូវ)'
+                //                 : 'សូមជ្រើសរើស ត្រឹមត្រូវ ឬ មិនត្រឹមត្រូវ',
+                //             style: TextStyle(
+                //               fontSize: 11,
+                //               color: Colors.grey.shade600,
+                //               fontStyle: FontStyle.italic,
+                //             ),
+                //           ),
+                //         ),
+                //       ],
+                //     ),
+                //   ),
+                // ],
               ],
             ),
           ),
@@ -215,49 +247,80 @@ class _InspectionItemCardState extends State<InspectionItemCard> {
 
     return GestureDetector(
       onTap: () {
-        if (_passed != value) {
-          setState(() {
-            _passed = value;
+        setState(() {
+          _passed = value;
 
-            // If switching to passed, clear note requirement
-            if (value) {
-              _noteController.clear();
-              widget.onChanged(true, null);
-            } else {
-              // If switching to failed, focus note field
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                _noteFocusNode.requestFocus();
-              });
-              widget.onChanged(false, _noteController.text);
-            }
-          });
-        }
+          if (value) {
+            // User selected "Yes/Passed"
+            _noteController.clear();
+            widget.onChanged(true, null);
+          } else {
+            // User selected "No/Failed"
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              _noteFocusNode.requestFocus();
+            });
+            widget.onChanged(false, _noteController.text);
+          }
+        });
       },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
           color: isSelected
               ? (value
-                  ? Colors.green.withOpacity(0.1)
-                  : Colors.red.withOpacity(0.1))
+                  ? Colors.green.withOpacity(0.15)
+                  : Colors.red.withOpacity(0.15))
               : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
-          // border: Border.all(
-          //   color: isSelected
-          //       ? (value ? Colors.green : Colors.red)
-          //       : Colors.grey.shade300,
-          //   width: isSelected ? 1.5 : 1,
-          // ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
+          border: Border.all(
             color: isSelected
                 ? (value ? Colors.green : Colors.red)
-                : Colors.grey.shade600,
-            fontSize: 12,
-            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                : (_passed == null
+                    ? Colors.grey.shade300
+                    : Colors.grey.shade400),
+            width: isSelected ? 1.5 : 1,
           ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: (value ? Colors.green : Colors.red).withOpacity(0.2),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  )
+                ]
+              : null,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              isSelected
+                  ? (value ? Icons.check_circle : Icons.cancel)
+                  : (value
+                      ? Icons.check_circle_outline
+                      : Icons.cancel_outlined),
+              size: 16,
+              color: isSelected
+                  ? (value ? Colors.green : Colors.red)
+                  : (_passed == null
+                      ? Colors.grey.shade600
+                      : Colors.grey.shade400),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected
+                    ? (value ? Colors.green : Colors.red)
+                    : (_passed == null
+                        ? Colors.grey.shade600
+                        : Colors.grey.shade400),
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+              ),
+            ),
+          ],
         ),
       ),
     );

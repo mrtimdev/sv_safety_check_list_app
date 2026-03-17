@@ -7,6 +7,7 @@ class LoginResponse {
   final Map<String, dynamic>? user;
   final String? identifyError;
   final String? passwordError;
+  final int? expiresIn;
 
   LoginResponse({
     required this.success,
@@ -16,6 +17,7 @@ class LoginResponse {
     this.user,
     this.identifyError,
     this.passwordError,
+    this.expiresIn,
   });
 
   factory LoginResponse.fromJson(Map<String, dynamic> json) {
@@ -27,6 +29,7 @@ class LoginResponse {
       user: json['user'],
       identifyError: json['identifyError'],
       passwordError: json['passwordError'],
+      expiresIn: json['expiresIn'] ?? json['expires_in'] ?? 3600,
     );
   }
 }

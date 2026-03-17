@@ -1,14 +1,14 @@
 class Inspection {
   final int itemId;
   final String itemName;
-  bool passed;
+  bool? passed;
   String? note;
   final bool isRequired;
 
   Inspection(
       {required this.itemId,
       required this.itemName,
-      this.passed = true,
+      this.passed,
       this.note,
       required this.isRequired});
 
@@ -17,7 +17,7 @@ class Inspection {
     return {
       'itemId': itemId,
       'passed': passed,
-      'note': passed ? null : note,
+      'note': note,
       'isRequired': isRequired
     };
   }
@@ -26,8 +26,12 @@ class Inspection {
     return Inspection(
         itemId: json['itemId'] ?? json['id'] ?? 0,
         itemName: json['itemName'] ?? json['name'] ?? '',
-        passed: json['passed'] ?? true,
+        passed: json['passed'] ?? null,
         note: json['note'],
         isRequired: json['isRequired']);
   }
+
+  bool get isEvaluated => passed != null;
+  bool get isPassed => passed == true;
+  bool get isFailed => passed == false;
 }

@@ -770,7 +770,7 @@ class _ChecklistDetailScreenState extends State<ChecklistDetailScreen> {
               ),
             ),
             child: Text(
-              item.passed ? 'មាន' : 'មិនមាន',
+              item.passed ? 'ត្រឹមត្រូវ' : 'មិនត្រឹមត្រូវ',
               style: TextStyle(
                 fontSize: 10,
                 fontWeight: FontWeight.w700,

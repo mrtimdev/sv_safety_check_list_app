@@ -1,10 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:safety_check_list/models/device_info.dart';
 import 'package:safety_check_list/models/login_request.dart';
+import 'package:safety_check_list/units/jwt_helper.dart';
+import 'package:safety_check_list/widgets/session_expired_popup.dart';
 // import 'package:safety_check_list/models/service_checker_request.dart';
 import '../models/category.dart';
 import '../models/service_checker.dart';
@@ -12,8 +15,8 @@ import '../models/inspection.dart';
 import '../services/secure_storage.dart';
 
 class ApiService {
-  // static const String homeUrl = 'http://192.168.0.37:8084';
-  // static const String baseUrl = 'http://192.168.0.37:8084/api/v1';
+  // static const String homeUrl = 'http://192.168.0.114:8084';
+  // static const String baseUrl = 'http://192.168.0.114:8084/api/v1';
   static const String homeUrl = 'http://45.201.196.19:8084';
   static const String baseUrl = 'http://45.201.196.19:8084/api/v1';
   // static const String homeUrl = 'http://172.20.10.4:8084';
@@ -33,15 +36,19 @@ class ApiService {
     };
   }
 
-  // Helper method to handle response
-  dynamic _handleResponse(http.Response response) {
+  dynamic _handleResponse(http.Response response, {BuildContext? context}) {
     if (response.statusCode >= 200 && response.statusCode < 300) {
       if (response.body.isNotEmpty) {
         return json.decode(response.body);
       }
       return null;
     } else if (response.statusCode == 401) {
-      throw Exception('Unauthorized: Please login again');
+      if (context != null) {
+        // Show popup immediately if context is provided
+        SessionExpiredPopup.handleUnauthorized(context);
+      }
+      throw Exception(
+          'SESSION_EXPIRED'); // Use a special message to identify session expiry
     } else if (response.statusCode == 403) {
       throw Exception('Forbidden: You don\'t have permission');
     } else {
@@ -56,8 +63,30 @@ class ApiService {
     }
   }
 
-  // Get categories from Spring API
-  Future<List<Category>> getCategories() async {
+  // // Helper method to handle response
+  // dynamic _handleResponse(http.Response response) {
+  //   if (response.statusCode >= 200 && response.statusCode < 300) {
+  //     if (response.body.isNotEmpty) {
+  //       return json.decode(response.body);
+  //     }
+  //     return null;
+  //   } else if (response.statusCode == 401) {
+  //     throw Exception('Unauthorized: Please login again');
+  //   } else if (response.statusCode == 403) {
+  //     throw Exception('Forbidden: You don\'t have permission');
+  //   } else {
+  //     try {
+  //       final error = json.decode(response.body);
+  //       throw Exception(
+  //         error['error'] ?? 'Request failed: ${response.statusCode}',
+  //       );
+  //     } catch (e) {
+  //       throw Exception('Request failed: ${response.statusCode}');
+  //     }
+  //   }
+  // }
+
+  Future<List<Category>> getCategories({BuildContext? context}) async {
     try {
       print('Fetching categories from: $baseUrl$categoriesEndpoint');
 
@@ -74,6 +103,16 @@ class ApiService {
         final List<dynamic> data = json.decode(response.body);
         print('Categories data: $data');
         return data.map((json) => Category.fromJson(json)).toList();
+      } else if (response.statusCode == 401) {
+        // Handle session expired with popup
+        if (context != null) {
+          // Show the cool popup and navigate to login
+          await SessionExpiredPopup.handleUnauthorized(
+            context,
+            message: 'ការប្រើប្រាស់របស់អ្នកបានផុតកំណត់',
+          );
+        }
+        throw Exception('SESSION_EXPIRED');
       } else {
         throw Exception('Failed to load categories: ${response.statusCode}');
       }
@@ -288,6 +327,7 @@ class ApiService {
     int limit = 20,
     String? dateFilter,
     required DeviceInfo deviceInfo,
+    BuildContext? context,
   }) async {
     try {
       String url = '$baseUrl$checklistsEndpoint/list?page=$page&limit=$limit';
@@ -311,9 +351,19 @@ class ApiService {
         print("📦 Received checklists response: $data");
         return data;
       } else if (response.statusCode == 401) {
-        throw Exception('Unauthorized: Please login again');
+        // Handle session expired with popup
+        if (context != null) {
+          // Show the cool popup and navigate to login
+          await SessionExpiredPopup.handleUnauthorized(
+            context,
+            message: 'ការប្រើប្រាស់របស់អ្នកបានផុតកំណត់',
+          );
+        }
+        throw Exception('SESSION_EXPIRED');
       } else {
-        throw Exception('Failed to load checklists: ${response.statusCode}');
+        throw Exception(
+          'Failed to create checklist: ${response.statusCode} - ${response.body}',
+        );
       }
     } catch (e) {
       print('Error fetching checklists: $e');
@@ -427,7 +477,8 @@ class ApiService {
     }
   }
 
-  // Login method
+  // In api_service.dart, update your login method
+
   Future<LoginResponse> login(String identifier, String password) async {
     try {
       final request = LoginRequest(identifier: identifier, password: password);
@@ -446,8 +497,34 @@ class ApiService {
       print('📥 Login response body: ${response.body}');
 
       final Map<String, dynamic> responseData = json.decode(response.body);
+      final loginResponse = LoginResponse.fromJson(responseData);
 
-      return LoginResponse.fromJson(responseData);
+      if (loginResponse.success && loginResponse.token != null) {
+        JwtHelper.printTokenInfo(loginResponse.token!);
+
+        await SecureStorage.saveToken(
+          loginResponse.token!,
+          expiresInSeconds: loginResponse.expiresIn ?? 3600,
+        );
+
+        // Save refresh token if available
+        if (loginResponse.refreshToken != null) {
+          await SecureStorage.saveRefreshToken(loginResponse.refreshToken!);
+        }
+
+        // Save user data
+        if (loginResponse.user != null) {
+          await SecureStorage.saveUser(loginResponse.user!);
+        }
+
+        // Save remember me preference
+        await SecureStorage.saveRememberMe(true);
+
+        print(
+            '✅ Login successful, token expires in: ${loginResponse.expiresIn ?? 3600} seconds');
+      }
+
+      return loginResponse;
     } on SocketException {
       throw Exception('No internet connection. Please check your network.');
     } on HttpException {
