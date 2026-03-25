@@ -15,8 +15,8 @@ import '../models/inspection.dart';
 import '../services/secure_storage.dart';
 
 class ApiService {
-  // static const String homeUrl = 'http://192.168.0.114:8084';
-  // static const String baseUrl = 'http://192.168.0.114:8084/api/v1';
+  // static const String homeUrl = 'http://192.168.0.30:8084';
+  // static const String baseUrl = 'http://192.168.0.30:8084/api/v1';
   static const String homeUrl = 'http://45.201.196.19:8084';
   static const String baseUrl = 'http://45.201.196.19:8084/api/v1';
   // static const String homeUrl = 'http://172.20.10.4:8084';
@@ -326,7 +326,6 @@ class ApiService {
     int page = 1,
     int limit = 20,
     String? dateFilter,
-    required DeviceInfo deviceInfo,
     BuildContext? context,
   }) async {
     try {
@@ -335,9 +334,6 @@ class ApiService {
       if (dateFilter != null) {
         url += '&dateFilter=$dateFilter';
       }
-
-      url += '&deviceId=${deviceInfo.deviceId}';
-
       print('Fetching checklists from: $url');
 
       final headers = await _getAuthHeaders();

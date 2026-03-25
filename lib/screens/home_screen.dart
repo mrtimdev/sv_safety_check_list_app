@@ -53,6 +53,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // User data
   Map<String, dynamic>? _userData;
+  bool _initialLoadDone = false;
 
   // Scroll controller for pagination
   final ScrollController _scrollController = ScrollController();
@@ -153,43 +154,63 @@ class _HomeScreenState extends State<HomeScreen> {
     if (refresh) {
       setState(() {
         _currentPage = 1;
+        _hasMore = true;
         _isLoading = true;
         _errorMessage = null;
+        _checklists.clear();
+        _filteredChecklists.clear();
+      });
+    } else if (!refresh && !_isLoadingMore) {
+      setState(() {
+        _isLoadingMore = true;
       });
     }
 
     try {
+      print('🔄 Loading checklists - Page: $_currentPage, Refresh: $refresh');
+
       final response = await _apiService.getChecklists(
-          page: _currentPage,
-          limit: 20,
-          dateFilter: _selectedFilter != 'all' ? _selectedFilter : null,
-          deviceInfo: _deviceInfo!,
-          context: context);
+        page: _currentPage,
+        limit: 50,
+        dateFilter: _selectedFilter != 'all' ? _selectedFilter : null,
+        context: context,
+      );
 
       setState(() {
+        final newChecklists = _apiService.parseChecklistsFromResponse(response);
+
         if (refresh || _currentPage == 1) {
-          _checklists = _apiService.parseChecklistsFromResponse(response);
+          _checklists = newChecklists;
+          print('✅ Loaded ${newChecklists.length} items (fresh load)');
         } else {
-          _checklists.addAll(_apiService.parseChecklistsFromResponse(response));
+          _checklists.addAll(newChecklists);
+          print(
+              '✅ Added ${newChecklists.length} items, total now: ${_checklists.length}');
         }
 
-        _currentPage = response['currentPage'] + 1;
-        _totalPages = response['totalPages'];
-        _totalItems = response['totalItems'];
+        _totalPages = response['totalPages'] ?? 1;
+        _totalItems = response['totalItems'] ?? 0;
         _hasMore = response['hasMore'] ?? false;
+
+        if (newChecklists.isNotEmpty) {
+          _currentPage++;
+          print('📄 Next page will be: $_currentPage');
+        }
 
         _applyLocalFilter();
         _isLoading = false;
         _isLoadingMore = false;
+        _initialLoadDone = true;
       });
     } catch (e) {
+      print('❌ Error loading checklists: $e');
       setState(() {
         _errorMessage = e.toString();
         _isLoading = false;
         _isLoadingMore = false;
       });
 
-      if (mounted) {
+      if (mounted && e.toString() != 'SESSION_EXPIRED') {
         _showModernSnackBar('Error loading checklists: ${e.toString()}',
             isError: true);
       }
@@ -238,19 +259,28 @@ class _HomeScreenState extends State<HomeScreen> {
     if (_scrollController.position.pixels >=
             _scrollController.position.maxScrollExtent - 200 &&
         !_isLoadingMore &&
-        _hasMore) {
+        _hasMore &&
+        !_isLoading &&
+        _initialLoadDone) {
+      print('📱 Scrolled to bottom, loading more...');
       _loadMore();
     }
   }
 
   Future<void> _loadMore() async {
-    if (_isLoadingMore || !_hasMore) return;
+    if (_isLoadingMore || !_hasMore || _isLoading) {
+      return;
+    }
+    await _loadChecklists(refresh: false);
+  }
 
+  Future<void> _refreshChecklists() async {
     setState(() {
-      _isLoadingMore = true;
+      _currentPage = 1;
+      _hasMore = true;
+      _isLoading = true;
     });
-
-    await _loadChecklists();
+    await _loadChecklists(refresh: true);
   }
 
   void _applyLocalFilter() {
@@ -264,17 +294,10 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _selectedFilter = filter;
       _currentPage = 1;
+      _hasMore = true;
       _isLoading = true;
       _checklists.clear();
-    });
-
-    await _loadChecklists(refresh: true);
-  }
-
-  Future<void> _refreshChecklists() async {
-    setState(() {
-      _currentPage = 1;
-      _isLoading = true;
+      _filteredChecklists.clear();
     });
     await _loadChecklists(refresh: true);
   }
